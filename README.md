@@ -303,3 +303,348 @@ if (preg_match("/[a-zA-Z\.]{1,}$/i", $char, $result)) {
   echo 'fail';
 }
 ```
+
+### 練習
+
+```php
+<?php
+// 正規表現を使って形式が正しいかチェックしてみよう。
+/**
+ * よく使う表現
+ * . 任意の一文字
+ * * 0回以上の繰り返し
+ * + 1回以上の繰り返し
+ * {n} n回の繰り返し
+ * [] 文字クラスの作成
+ * [abc] aまたはbまたはc
+ * [^abc] aまたはbまたはc以外
+ * [0-9] 0~9まで
+ * [a-z] a~zまで
+ * $ 終端一致
+ * ^ 先頭一致
+ * \w 半角英数字とアンダースコア
+ * \d 数値
+ * \ エスケープ
+ */
+
+
+/**
+ * 郵便番号
+ * 
+ * 001-0012 -> OK
+ * 001-001 -> NG
+ * 2.2-3042 -> NG
+ * wd3-2132 -> NG
+ * 124-56789 -> NG
+ */
+
+$char1 = '124-56789';
+if (preg_match("/^\d{3}-\d{4}$/", $char1, $result)) {
+  print_r($result);
+  echo "<h3>{$char1} is match.</h3>";
+} else {
+  echo "<h3>{$char1} is fail.</h3>";
+}
+
+/**
+ * Email
+ * . _ - と半角英数字が可能
+ * 
+ * example000@gmail.com -> OK
+ * example-0.00@gmail.com -> OK
+ * example-0.00@ex.co.jp -> OK
+ * example/0.00@ex.co.jp -> NG
+ */
+
+$char2 = 'example/0.00@ex.co.jp';
+if (preg_match("/^[\w\.\-]+@[\w\-]+\.[\w\.\-]+$/i", $char2, $result)) {
+  print_r($result);
+  echo "<h3>{$char2} is match.</h3>";
+} else {
+  print_r($result);
+  echo "<h3>{$char2} is fail.</h3>";
+}
+
+/**
+ * HTML
+ * 見出しタグ(h1~h6)の中身のみ取得してみよう。
+ */
+
+$char3 = '<!DOCTYPE html>
+<html>
+<head>
+    <title>Document</title>
+</head>
+<body>
+    <h1>見出し１</h1>    
+    <h2>見出し２</h2>    
+    <h3>見出し３</h3>    
+    <header>ヘッダー</header>
+</body>
+</html>';
+
+if (preg_match_all("/<h[1-6]>(.+?)<\/h[1-6]>/", $char3, $result)) {
+  print_r($result);
+  // 最後の要素を取り出す方法
+  print_r($result[count($result) - 1]);
+}
+```
+
+## 関数
+
+```php
+<?php
+/**
+ * 関数を作ってみよう（Part. 1）
+ * 
+ * - 特定の機能を使いまわせるようにまとめたもの。
+ * - Input（引数）、Output（戻り値）を設定する
+ * - returnが実行された時点でその関数の処理終了
+ */
+
+// その1
+$numbers = [1,2,3,4];
+$numbers2 = [1,2,3,100];
+
+function sum($arg) {
+  $sum = 0;
+  foreach ($arg as $key => $num) {
+    // $sum = $sum + $num;
+    $sum += $num;
+  }
+  echo $sum;
+}
+
+sum($numbers);
+sum($numbers2);
+
+
+// その2 戻り値を使う
+$numbers = [1,2,3,4];
+
+function sum($arg) {
+  $sum = 0;
+  foreach ($arg as $key => $num) {
+    // $sum = $sum + $num;
+    $sum += $num;
+  }
+  return $sum;
+}
+
+$result = sum($numbers);
+echo "<h3>合計：{$result}</h3>";
+```
+
+```php
+/**
+ * 関数を作ってみよう（Part. 2）
+ * 
+ * - デフォルト引数を設定可能
+ * - 文字列を関数として実行可能
+ */
+
+// デフォルト引数を設定可能
+$price = 1000;
+$tax = 0.08;
+function with_tax($unit_price, $rate = 0.1) {
+  $price_including_tax = $unit_price + ($unit_price * $rate);
+  $price_including_tax = round($price_including_tax);
+  return $price_including_tax;
+}
+
+$result = with_tax($price, $tax);
+echo $result;
+
+// 文字列を関数として実行可能
+$price = 1000;
+$tax = 0.08;
+function with_tax($unit_price, $rate = 0.1) {
+  $price_including_tax = $unit_price + ($unit_price * $rate);
+  $price_including_tax = round($price_including_tax);
+  return $price_including_tax;
+}
+
+// 関数名を文字列としても実行できる。
+$result = "with_tax"($price, $tax);
+echo $result;
+
+// 関数名を文字列として変数に格納し実行することができる。変態。
+$fn = "with_tax";
+$result = $fn($price, $tax);
+echo $result;
+```
+
+## PHP-DOCの書き方
+
+```php
+<?php
+// スラッシュ + アスタリスク二つでエンター
+// DOC COMMENT
+/**
+ * 税率計算の関数を記述するためのファイル
+ * 
+ * @author quad9
+ * @since 0.0.0
+ */
+
+// リファレンスは
+// https://zonuexe.github.io/phpDocumentor2-ja/references/phpdoc/index.html
+
+/**
+ * title: 
+ * 税込み金額を取得する関数
+ * 
+ * 詳しい説明はこちら。
+ * 
+ * @param int $base_price 価格
+ * @param float $tax_rate 税率
+ * 
+ * @return int 税込み金額
+ * 戻り値を返さない場合は
+ * @return void
+ * 
+ * 参考資料がある場合
+ * @see https://example.com/
+ */
+
+function with_tax($base_price, $tax_rate = 0.1) {
+    $sum_price = $base_price + ($base_price * $tax_rate);
+    $sum_price = round($sum_price);
+    return $sum_price;
+}
+```
+
+## スコープ
+
+```php
+<?php
+
+/**
+ * スコープ
+ * 変数が参照可能な範囲
+ * 
+ * - グローバルスコープ => ファイルの直下で効く。
+ * - ローカルスコープ   => 関数内で有効。
+ * - スーパーグローバル
+ */
+
+// global scope
+$global = "hello global";
+
+// ファイルの直下での呼び出し。
+echo $global;
+
+// 関数内で呼び出すともちろんエラー。
+function call_in_fn() {
+  echo $global;
+}
+call_in_fn();
+
+// 関数内で呼び出せるようにする。
+function call_in_fn() {
+  global $global;
+  echo $global;
+}
+call_in_fn();
+
+// グローバルでの変数宣言はできるだけ避けるが定石
+
+// super scope
+// ファイル直下はもちろん関数内からも呼び出し可能
+function super_global_scope() {
+  var_dump($_SERVER);
+}
+super_global_scope();
+
+// PHPの場合、if文、for文（『{}』で囲まれた範囲）ではスコープは発生しない。
+if (true) {
+  $in_if_stm = "hello IF";
+}
+// 外から呼び出せてしまう。
+echo $in_if_stm;
+
+// グローバル・スコープの変数は普通に読み込める。当たり前か。。。
+$in_if_stm = "Hi, IF!";
+
+if (true) {
+  echo $in_if_stm;
+}
+
+// local scope
+function func() {
+  $local = "hello local";
+  echo $local;
+}
+function func_other() {
+  echo $local;
+}
+
+// スコープが違うから呼び出してもエラーが起こる。
+func_other();
+```
+
+## 復習問題
+
+```php
+<?php
+/**
+ * 理解度チェック（関数とスコープ）
+ * 
+ * 以下のDocコメントを元に関数を作成してみてください。
+ */
+
+/**
+ * 問１：生徒の点呼をとる関数(tenko)
+ * 
+ * 以下のような点呼をとりましょう。
+ * ```
+ * （出席しているとき）
+ * taroは出席しています。
+ * （欠席しているとき）
+ * taroは欠席しています。
+ * ```
+ * $is_absentのデフォルト引数はfalseとしてください。
+ * 
+ * @param string $student 生徒
+ * @param bool $is_absent true:欠席 false:出席
+ * @return void 
+ */
+
+$student1 = 'taro';
+$student2 = 'jiro';
+$student3 = 'hanako';
+
+function muster($student, $isabsent = false) {
+  if ($isabsent) {
+    echo "{$student}は欠席しています。";
+  } else {
+    echo "{$student}は出席しています。";
+  }
+}
+
+muster($student1, true);
+
+/**
+ * 問２：カウンター関数(counter)
+ * 
+ * グローバルスコープに定義された $num に対して、
+ * 引数でわたってきた $step を足し合わせた数値を
+ * $num に再び格納して、画面に出力するプログラムを作成してください。
+ * $stepのデフォルト引数は 1 としてください。
+ * 
+ * @global int $num 足し合わせる元となる数値
+ * 
+ * @param int $step 足し合わせる数値
+ * 
+ * @return int 合計値 ($num + $step)
+ */
+
+function counter($step = 1) {
+  global $num;
+  $num += $step;
+  return $num;
+}
+$num = 0; 
+echo counter(100);
+echo counter(100);
+```

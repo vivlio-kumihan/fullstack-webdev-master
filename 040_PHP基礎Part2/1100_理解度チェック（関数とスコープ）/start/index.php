@@ -26,6 +26,16 @@ $student1 = 'taro';
 $student2 = 'jiro';
 $student3 = 'hanako';
 
+function muster($student, $isabsent = false) {
+  if ($isabsent) {
+    echo "{$student}は欠席しています。";
+  } else {
+    echo "{$student}は出席しています。";
+  }
+}
+
+muster($student1, true);
+
 /**
  * 問２：カウンター関数(counter)
  * 
@@ -42,3 +52,12 @@ $student3 = 'hanako';
  */
 
 $num = 0; 
+
+function counter($step = 1) {
+  global $num;
+  $num += $step;
+  return $num;
+}
+
+echo counter(100);
+echo counter(100);
