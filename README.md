@@ -648,3 +648,65 @@ $num = 0;
 echo counter(100);
 echo counter(100);
 ```
+
+# プログラムの実行順
+
+```php
+<?php
+
+/**
+ * プログラムの記述順には注意しよう
+ * 
+ * - 関数内の処理は関数が実行されて初めて動く
+ * - 関数宣言はプログラムの実行よりも前に準備される
+ * - それ以外は上から順に実行される
+ */
+
+$num = 0;
+echo counter(1000);
+
+function counter($step = 1)
+{
+  global $num;
+  $num += $step;
+  return $num;
+}
+```
+
+## if文
+
+```php
+<?php
+/**
+ * 条件分岐を省略して記述してみよう
+ * 
+ * - 三項演算子の使い方
+ * - null合体演算子
+ */
+
+// 何をしているかというと
+// 欲しい連想配列に値があればその値を
+// 値がなければなんかするみたいなことをしたいわけ。
+
+$arry = [
+  'key' => 10,
+];
+
+// if文
+if (isset($arry['key'])) {
+  $arry['key'] *= 10;
+} else {
+  $arry['key'] = 1;
+}
+echo $arry['key'];
+
+// 三項演算子
+$arry['key'] = isset($arry['key']) ? $arry['key'] * 10 : 1;
+echo $arry['key'];
+
+// null合体演算子
+// $arry['key']がnull以外なら??より左の値、
+// $arry['key']がnullなら??より右の値が代入される。
+$arry['key'] = $arry['key'] ?? 1;
+echo $arry['key'];
+```
