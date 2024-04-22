@@ -1,5 +1,1 @@
-<?php
-
-function func2() {
-  echo "function 2 is called.";
-}
+<h3>File2 is Required!</h3>
