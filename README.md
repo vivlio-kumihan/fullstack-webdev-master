@@ -855,3 +855,733 @@ echo dirname(__FILE__, 2);
 // 独特の挙動をするので。いちいち挙動を覚えてられないから一律禁止にする。
 // 頭悪いからな。。。
 ```
+
+## 名前空間
+
+```PHP
+<?php
+
+// 名前空間を利用するための処理
+// 名前空間に登録できるのは、
+//    => 関数
+//    => 定数
+//    => クラス
+// 今回は、定数TAX_RATEとwith_tax()関数を『lib.php』に
+// 名前空間としてファイルを分ける。
+
+// ↓ ここから
+
+namespace lib;
+
+// // namespaceには、define()関数を使ったものには登録できないので、
+// // 通常の定数の定義に変更する。
+// if(!defined('TAX_RATE')) {
+//     define('TAX_RATE', 0.1);
+// }
+const TAX_RATE = 0.1;
+    
+function with_tax($base_price, $tax_rate = TAX_RATE) {
+    $sum_price = $base_price + ($base_price * $tax_rate);
+    $sum_price = round($sum_price);
+    return $sum_price;
+}
+
+// ↑ ここまでを『lib.php』へ
+
+
+
+////////////////////////////////////
+// ファイルを分割したので読み込む。
+require_once 'lib.php';
+
+// // 呼び出し
+// // 合図は、『\』+『名前空間名』+『\』+『関数名』
+// // として関数を呼び出す
+// $price = \lib\with_tax(1000, 0.08);
+// echo $price;
+
+// // 定数を呼び出し。
+// echo \lib\TAX_RATE;
+
+// 呼び出し　その2
+// 関数の呼び出し
+//    『use』を使ってスッキリさせる。
+//    これを使った場合、最初の『\』は、
+//    グローバル空間を示す。
+//    最初の『\』は省略できる。
+use function lib\with_tax;
+use const lib\TAX_RATE;
+$price = with_tax(1000, 0.08);
+echo $price;
+
+/////////////////////////////
+
+require_once 'lib.php';
+use function lib\with_tax;
+$price = with_tax(1000, 0.08);
+// echo $price;
+
+use const lib\TAX_RATE;
+echo TAX_RATE;
+
+// グローバル空間で関数を定義
+function my_echo() {
+  echo "hello";
+}
+```
+
+## クラスを呼ぶときは注意
+
+```PHP
+
+require_once 'lib.php';
+use function lib\with_tax;
+use const lib\TAX_RATE;
+
+$price = with_tax(1000, 0.08);
+echo $price . "<br />";
+echo TAX_RATE . "<br />";
+
+function my_echo()
+{
+  echo "external function!<br />";
+}
+
+my_echo();
+
+class GlobalCls
+{
+  public $name;
+  function __construct($name) {
+    $this->name = $name;
+  }
+}
+```
+
+```PHP
+<?php
+namespace lib;
+
+const TAX_RATE = 0.1;
+function with_tax($base_price, $tax_rate = TAX_RATE)
+{
+  $sum_price = $base_price + ($base_price * $tax_rate);
+  $sum_price = round($sum_price);
+  return $sum_price;
+}
+
+// グローバル空間で定義された定数・変数・関数は
+// グローバル空間を表す『\』を付けなくていい。
+my_echo();
+
+$gc = new \GlobalCls("takahiro");
+// echo $gc->name();
+```
+
+## クラス
+
+```php
+<?php
+class Person
+{
+  // クラス内がスコープ
+  private $name;
+  // グローバルなスコープ
+  public $age;
+
+  // コンストラクター
+  function __construct($name, $age)
+  {
+    $this->name = $name;
+    $this->age = $age;
+  }
+
+  function hello()
+  {
+    echo "hello, {$this->name}<br />";
+  }
+}
+
+$nob = new Person("髙廣", 59);
+// プロパティの呼び出し
+echo $nob->age . "<br />";
+// helloメソッドの呼び出し
+$nob->hello();
+```
+
+## $thisでチェーン・メソッドができるようにする
+
+```php
+<?php 
+class Person
+{
+  private $name;
+  public $age;
+
+  function __construct($name, $age)
+  {
+    // $thisという変数は、
+    // インスタンス化されたオブジェクトのことを指す。
+    $this->name = $name;
+    $this->age = $age;
+  }
+
+  function hello() {
+    // helloメソッドを読んだら返ってくる命令はこのecho。
+    echo "Hello, {$this->name}!<br />";
+    // メソッド・チェーンが出来るようにreturnで$thisを呼ぶんだね。
+    return $this;
+  }
+  function bye() {
+    echo "Goodbye, {$this->name}!<br />";
+    return $this;
+  }
+}
+
+$john = new Person('John', 40);
+$john->hello();
+echo "=========================<br />";
+$john->bye();
+echo "=========================<br />";
+// 『return $this;』をすることでメソッド・チェーンができる。
+$john->hello()->bye();
+echo "=========================<br />";
+// 別にインスタンスを生成させて、同じようにメソッド・チェーンする。
+$paul = new Person('Paul', 81);
+$paul->hello()->bye();
+```
+
+## 静的メソッド、プロパティ
+ 
+```php
+<?php
+class Person
+{
+  private $name;
+  public $age;
+
+  // 静的プロパティ
+  public static $whereToLive = "New York";
+  // 静的プロパティを定数として
+  public const WHERE = "Tokyo";
+
+  function __construct($name, $age)
+  {
+    $this->name = $name;
+    $this->age = $age;
+  }
+
+  function hello()
+  {
+    echo "Hello, {$this->name}!<br />";
+    // インスタンス・メソッドの定義部に
+    // 静的メソッドでメッセージの送信ができる！
+    // Person::bye();
+    
+    // ただし、クラス内で使用するにはクラス名は使わない。
+    static::bye();
+    // 場合によってはselfを使うこともある。
+    // self::bye();
+
+    return $this;
+  }
+  // staticメソッド
+  //    staticメソッド内では$this変数は持てない。
+  //    これはクラス自体が持つメソッド。
+  //    いちいちインスタンスを起こす必要はない。
+  static function bye()
+  {
+    echo "Goodbye<br />";
+  }
+}
+
+// インスタンスの生成
+$john = new Person('John', 40);
+
+// // staticメソッドの呼び出しは、
+Person::bye();
+
+// インスタンスは静的メソッドがわかる。
+// 多分インスタンスはbye静的メソッドが呼ばれたら、
+// 自分自身を参照し、なければ親のPersonクラスにあるかどうかを
+// 探しに行くようになっている。みたいなイメージだろうね。
+
+// ただし、普通はクラスへ呼び出しをかけるので
+// このような呼び出し方はしない。
+$john::bye();
+
+// インスタンスのメソッド定義で
+// 静的メソッドからメッセージを送ることはできる。
+// helloメソッドを呼ぶと、
+// 設定されている全ての出力がなされる。
+echo "<hr />";
+$john->hello();
+echo "<hr />";
+
+// 静的プロパティの呼び出し
+// 全てのオブジェクトで共通して設定される値で使う。
+echo Person::$whereToLive . "<br />";
+echo Person::WHERE;
+```
+
+## クラス継承　その1
+
+```php
+<?php
+/**
+ * クラス継承
+ */
+class Person {
+  // protectedとは、
+  //    自身のクラスとそれを継承している
+  //    『クラスの内側!!』で使用可能であることを宣言している。
+  //    外部からアクセスできないよ！
+  protected $name;
+  public $age;
+  public const WHERE = 'Earth';
+  public static $WHERE = 'earth';
+
+  function __construct($name, $age) {
+      $this->name = $name;
+      $this->age = $age;
+  }
+  
+  function hello() {
+    echo "Hello, {$this->name}!";
+    return $this;
+  }
+  
+  static function bye() {
+    echo 'Good-bye!';
+  }
+}
+  
+  // クラス継承をやってみる。
+  // 親クラスで設定されたプロパティのスコープがprivateだったら
+  // 子に届かない。publicになっていることを確認しないとね。
+  class Japanese extends Person {
+    // 継承のクラスで静的プロパティも上書きできる。
+    public static $WHERE = "大阪";
+    public $gender;
+    public $adress;
+    // 必要なプロパティは最初に宣言が必要だけど、
+    // そのまま持ってくるだけ。
+    function __construct($name, $age, $gender, $adress)
+    {
+      $this->name = $name;
+      $this->age = $age;
+      $this->gender = $gender;
+      $this->adress = $adress;
+    }
+    function hello() {
+      echo "こんにちは、{$this->name}さん！<br />";
+      echo "年齢は、{$this->age}歳<br />";
+      echo "性別は、{$this->gender}性<br />";
+      // 変数展開ができない。。。だからこの書き方で統一してあるんだね。。。
+      echo "ご出身は、" . static::$WHERE . "ですね。<br />";
+      return $this;
+    }
+}
+
+$personNob = new Person("髙廣", 59);
+$nob = new Japanese("髙廣", 59, "男", "大阪");
+$nob->hello();
+```
+
+## クラス継承　その2
+
+```php
+<?php
+
+use Person as GlobalPerson;
+
+/**
+ * クラス継承
+ */
+
+// abstractを含むメソッドを持っているクラスは、
+// 先頭にabstractと書かないといけない。
+// で、そうなると、このクラスは直接呼び出すことが出来なくなる。
+abstract class Person 
+{
+  public $name;
+  public $age;
+  public const WHERE = 'Earth';
+  public static $WHERE = 'earth';
+
+  function __construct($name, $age) 
+  {
+    $this->name = $name;
+    $this->age = $age;
+    // 自身のプロパティ
+    echo self::$WHERE;
+    // 静的プロパティを宣言されたクラスの値がかえる。
+    // 継承先のクラスで静的プロパティの宣言がなければ『自身』の値が返る。
+    echo static::$WHERE;
+  }
+
+  // // finalを付けると継承先のクラスではこのメソッドは使えない。
+  // final function hello() {
+  //   echo "Hello, {$this->name}!";
+  //   return $this;
+  // }
+
+  // abstract（要旨）を付けると、
+  // このメソッドは継承先のクラスで実装を書いていると宣言することになる。
+  // ここの宣言が抜けていても継承先でメソッド定義しているので動くのだが、
+  // メソッドのルートがここにあることが重要になることがある。
+  // 後々わかるだろうからここは大まかにこうするものだと覚えておく。
+  abstract function hello();
+
+  static function bye() 
+  {
+    echo 'Good-bye!';
+  }
+}
+
+class Japanese extends Person 
+{
+  // 継承先のクラスで静的プロパティをオーバーライドする。
+  public static $WHERE = "大阪";
+  // 継承先のクラスで新たにプロパティを宣言する。
+  public $gender;
+
+  function __construct($name, $age, $gender)
+  {
+    // 行数を減らす効果にはならないと思うが、parentで書き直せる。
+    // 結局引数を書かないといけないからね。
+    parent::__construct($name, $age);
+    // $this->name = $name;
+    // $this->age = $age;
+    $this->gender = $gender;
+  }
+  function hello() 
+  {
+    echo "こんにちは、{$this->name}さん！<br />";
+    echo "年齢は、{$this->age}歳<br />";
+    echo "性別は、{$this->gender}性<br />";
+    // static, self, parentについて
+    // 静的 === 自身
+    echo "ご出身は、" . static::$WHERE . "ですね。<br />";
+    echo "ご出身は、" . self::$WHERE . "ですね。<br />";
+    // 親のプロパティ
+    echo "ご出身は、" . parent::$WHERE . "ですね。<br />";
+    return $this;
+  }
+}
+
+$nob = new Japanese("髙廣", 59, "男", "大阪");
+echo "<hr />";
+$nob->hello();
+echo "<hr />";
+echo $nob->name;
+echo "<hr />";
+echo $nob->age;
+```
+
+# HTTP通信
+
+## メソッド
+### GET
+役割：データの取得
+
+パラメータはURLの一部としてサーバーに送信される。
+    GET /path?param1=値&param2=値
+
+このようなURLで、サーバー側でparam1、param2の値を取得することができる。
+
+ブラウザキャッシュは有効。
+サーバーから取ってきた情報をブラウザ側で保存することができる。
+
+GETで送るもの
+URLの下に、HeaderとBodyがある。
+Header
+  ブラウザキャッシュの設定値を設定してサーバーへ送る。
+Body
+  空で送信される。
+
+### post
+役割：データの作成、更新
+パラメーターはBodyに設定される。
+
+POST /path
+Header
+  サーバーとの通信における設定値
+Body
+  param1=値
+  param2=値
+
+なので、ブラウザキャッシュは無効
+
+### HTTP通信で覚えるべきこと
+HTTP通信はリクエストの前後で状態を保持しないプロトコル。（ステート・レス）
+
+2回目の通信（往復）は、1回目の通信（往復）の内容を知らない。
+（これを記憶しておくのがセッションという機能。）
+
+# フォーム
+
+```php
+<!-- name属性は必須。これがサーバーに送られるプロパティ。 -->
+<form action="get.php" method="GET">
+  <input type="text" name="username">
+  <input type="text" name="password">
+  <input type="submit" value="ボタンを押してね">
+  <button type="submit">送信</button>
+</form>
+```
+
+# GETしてみる
+
+### 送信側
+```php
+<!-- method="GET"は省略できる。 -->
+<form action="get.php" method="GET">
+  <input type="text" name="username">
+  <input type="password" name="pwd">
+  <input type="submit" value="ボタンを押してね">
+</form>
+```
+
+### 受信側
+```php
+<div>
+  name: <?php echo $_GET['username']; ?>
+</div>
+<div>
+  name: <?php echo $_GET['pwd']; ?>
+</div>
+```
+
+# POSTしてみる
+
+### 送信側
+```php
+<form action="post.php" method="POST">
+    <input type="text" name="username">
+    <input type="password" name="pwd">
+    <input type="submit" value="ボタンを押してね">
+</form>
+```
+
+### 受信側
+```php
+<div>
+    名前：<?php echo $_POST['username'] ?>
+</div>
+<div>
+    パスワード：<?php echo $_POST['pwd'] ?>
+</div>
+```
+
+## GETとPOSTの使い分け
+
+> URLは最大2000文字程度までしか設定できないので、まとまった量の本文を送信するにはPOSTになるわけ。
+
+> GETではパラメータを含めて共有できる。というかパラメータと値が丸見え。
+
+### GETで通信
+index.php
+```php
+<?php
+$students = [
+    '1' => [
+        'name' => 'taro',
+        'age' => 15,
+    ],
+    '2' => [
+        'name' => 'hanako',
+        'age' => 14,
+    ],
+    '3' => [
+        'name' => 'jiro',
+        'age' => 12,
+    ],
+];
+
+$id = $_GET['id'];
+$student = $students[$id];
+$name = $student['name'];
+$age = $student['age'];
+?>
+<div><?php echo "{$name}は{$age}才です。"; ?></div>
+```
+send.php
+```php
+<!-- method="GET"は省略できる。 -->
+<form action="index.php" method="GET">
+  <input type="number" name="id">
+  <input type="submit" value="ボタンを押してね">
+</form>
+```
+
+## フォームで配列を送信する。
+
+```php
+<!-- 配列として送る。 -->
+
+<!-- GETで配列送る。 -->
+
+<form action="receive.php" method="GET">
+  <div><input type="text" name="members[]"></div>
+  <div><input type="text" name="members[]"></div>
+  <div><input type="text" name="members[]"></div>
+  <button type="submit">送信する</button>
+</form> 
+
+
+<!-- POSTで配列を送る。 -->
+<form action="receive.php" method="POST">
+  <div><input type="text" name="members[]"></div>
+  <div><input type="text" name="members[]"></div>
+  <div><input type="text" name="members[]"></div>
+  <button type="submit">送信する</button>
+</form>
+
+
+<!-- POSTで配列を送る。 -->
+<!-- で、こちらでは引数はそのまま入れている。混乱するな。 -->
+<form action="receive.php" method="POST">
+  <div><input type="text" name="members[id]"></div>
+  <div><input type="text" name="members[name]"></div>
+  <div><input type="text" name="members[age]"></div>
+  <button type="submit">送信する</button>
+</form>
+```
+
+```php
+<?php
+// 配列としてGETから受信する。
+$lines = $_POST["members"];
+print_r($_POST['members']);
+
+// 配列としてPOSTから受信する。
+$lines = $_POST["members"];
+print_r($_POST['members']);
+
+// 連想配列としてPOSTから受信する。
+// 配列も連想配列も同じ書式。文化が違うと理解する。
+$lines = $_POST["members"];
+print_r($_POST['members']);
+?>
+
+<!-- 受信した配列の値を出力する。 -->
+<div><?php echo "{$lines[0]}です。"; ?></div>
+<div><?php echo "{$lines[1]}です。"; ?></div>
+<div><?php echo "{$lines[2]}です。"; ?></div>
+
+<!-- 受信した連想配列の値を出力する。 -->
+<!-- 引数を『''』で囲うのは気持ち悪いが慣れるしかない。 -->
+<div><?php echo "{$lines['id']}です。"; ?></div>
+<div><?php echo "{$lines['name']}です。"; ?></div>
+<div><?php echo "{$lines['age']}です。"; ?></div>
+```
+
+## 隠しフィールドでサーバーに値を送る
+
+```php
+<!-- ブラウザには見えない入力欄を設けて、適宜サーバーに値を送るためのinput要素。 -->
+<!-- ただし、簡単に改竄が可能。計算するとかそういうものには使えない。 -->
+<!-- 。。。なんだかなぁ。。。であるが、道のり長いので頑張る。 -->
+<form action="post.php" method="POST">
+  <div>
+    <label for="amount">個数</label>
+    <input id="amount" type="number" name="amount">
+  </div>
+  <div>
+    <label for="price">価格</label>
+    <input id="price" type="number" name="price">
+  </div>
+  <div>
+    割引: 10%
+  </div>
+  <!-- type="hidden"に値を与えてサーバーに送ることができる。 -->
+  <input type="hidden" name="discount" value="10">
+  <button type="submit">送信</button>
+</form>
+```
+
+```php
+<?php 
+// POSTから渡ってきた全ての値を確認できるよ。
+var_dump($_POST);
+
+$amount = $_POST["amount"];
+$price = $_POST["price"];
+$discount = $_POST["discount"];
+$check_sum = $amount * $price;
+$check_sum -= $check_sum * $discount / 100;
+$total = round($check_sum);
+print_r("［個数: {$amount}個・単価: {$price}円・合計: {$total}円］");
+```
+
+## Cookie
+
+```php
+<!-- 
+HTTPはステート・レス
+だが、送信した値を保持したいことがある。
+それを実現させるのがCookie・SESSION・データベース。
+
+ブラウザに保存 => Cookie
+local（値） => sarver => HTTPのヘッダーに載って（1回目だよ）localへ localで値は保持する。
+
+サーバーに保存 => SESSION・データベース
+-->
+
+<?php
+setcookie('VISIT_COUNT', 1);
+
+// Response Headers
+//    開発ツールのNetwork/Headers/Response Headers
+//    localからのHTTPリクエスを送り、
+//    serverからのHTTPリクエストのHeaderに設定されているもの、それが『Response Header』。
+//    そこを見ると、『Set-Cookie: VISIT_COUNT=1』という値が記載されている。
+//    これが、serverから返ってきた時に、serverがCookieに設定した値。
+
+// Application
+//    開発ツールのApplication/Storage/Cookies
+//    様々なプロパティがある。確認は下記サイトで。
+//    https://www.php.net/manual/ja/function.setcookie.php
+
+// NetWork
+//    リロードするとRequest HeadersにCookieの項目が現れる。
+//    serverに送られたCookieを確認するには以下で確認できる。
+
+var_dump($_COOKIE['VISIT_COUNT']);
+
+// スーパーグローバルの$_COOKIEの値を変更してもserver側での値が変わるわけではない。
+// 値を変更するにはsetcookieメソッドを使う。
+
+$_COOKIE['VISIT_COUNT'] = 0;
+
+// ========
+// Cookieに設定するオプション
+// 引数に配列を渡して、様々なプロパティを渡してみる。
+
+// Expires
+// time()関数で現在の時刻を取得
+// それに対して『+ 60』とすると、
+// 現在の時刻から60秒間Cookieが有効になる。
+// その期間を超えるとCookieは破棄される。
+// 以下、時間の設定はこれを参照。
+//      60 = 1分
+//      60 * 60 = 1時間
+//      60 * 60 * 24 = 1日
+//      60 * 60 * 24 * 30 = 30日
+
+// Path
+// そのpath、またはそのpath配下に対してCookieが有効になる。値が飛んでいくと表現しておるようだ。
+
+// HttpOnly, Secureがセキュリティに関する設定
+// Secure
+//     ここをtrueにすると、https通信の場合のみ、Cookieをserverとやり取りする。
+//     つまり、httpsの通信の場合のみ有効になるということ。defaultはfalse。
+// HttpOnly
+//     これをtrueにすると、JavaScriptからCookieの値を操作することができなくなる。
+setcookie('VISIT_COUNT', 1, [
+  'expires' => time() + 60 * 60 * 24 * 30,
+  'path' => '/'
+]);
+
+```

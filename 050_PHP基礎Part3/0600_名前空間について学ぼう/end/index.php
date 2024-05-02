@@ -16,5 +16,4 @@ function my_echo() {
 }
 my_echo();
 class GlobalCls {
-
 }
