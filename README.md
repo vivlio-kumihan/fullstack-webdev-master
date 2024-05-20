@@ -2296,3 +2296,107 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule rewrite-test/sub2/(.+) sub1/$1
 ```
 
+## 理解度チェック
+
+問１：
+.htmlで来たリクエストを同じファイル名のphpに転送してください。
+つまり、検索窓に直接URLで書かれたファイル名ということ === RewriteRuleで書く。
+
+例）
+http://localhost:8888/apache/rewrite-test/file1.html
+-> http://localhost:8888/apache/rewrite-test/file1.php
+```apache
+RewriteEngine On
+DirectoryIndex file1.html
+RewriteBase /apache/rewrite-test/
+
+# 先頭の『/?』をなぜつけるのか？
+# .htaccessなら不必要。httpd.confでは必要。
+# 書き分けるのが邪魔くさいので付けておくとのこと。
+RewriteRule /?rewrite-test/(.+)\.html$ $1.php
+```
+
+問２：
+rewrite-test/sub1内のファイルに対してリクエストを送信
+した際に同じファイル名でsub2内に存在するファイルは
+sub2のものを表示してください。存在しなければ、sub1内の
+ファイルを表示してください。
+```apache
+例）
+http://localhost:8888/apache/rewrite-test/sub1/file1.html
+-> http://localhost:8888/apache/rewrite-test/sub2/file1.html
+```
+
+```apache
+http://localhost:8888/apache/rewrite-test/sub1/file2.html
+-> Internal Redirect は行わない。
+```
+### 注意点
+入力値に対して、{REQUEST_FILENAME}は使えない。
+探すのは『sub1』ディレクトリだが、転送先は『sub2』だから。
+
+`/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/sub2/`
+
+の中に検索結果で返ってきたグループ『$1』があれば。。。という条件を書く必要がある。
+
+```apache
+RewriteEngine On
+RewriteBase /apache/rewrite-test/
+RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/sub2/$1 -f
+```
+
+### ここの注目
+
+『sub1』ディレクトリの中に何かがあれば、とりあえずまとめて『S1』に送りRewriteCondで吟味して『真』が返ったら『sub2/$1』で転送する。
+配列のforを見えない状態でやっているわけだ。
+```apache
+RwriteRule /?rewrite-test/sub1/(.*) sub2/$1
+```
+ファイルとディレクトリで検索をやる。
+ファイルがあるかとディレクトリがあるかを『&& 論理積』の条件付はできないので『|| 論理和』でやる。
+
+```apache
+RewriteEngine On
+RewriteBase /apache/rewrite-test/
+RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/sub2/$1 -f [OR]
+RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/sub2/$1 -d
+RewriteRule /?rewrite-test/sub1/(.*) sub2/$1
+```
+
+# Webp画像の設定
+
+jpeg、またはjpg,png拡張子のファイルにアクセスがあった場合に
+Webp拡張子の画像が存在する場合はそれを返す。
+
+```apache
+# 例）
+# http://localhost:8888/apache/rewrite-test/img/150.jpg
+# -> http://localhost:8888/apache/rewrite-test/img/150.webp
+```
+
+```apache
+RewriteEngine On
+RewriteBase /apache/rewrite-test/
+
+# webpに対応しているかどうかを調べる
+# Applications/MAMP/conf/apache/mime.type
+# image/webp  webp
+# 『webp』というファイルに対して、
+# 『image/webp』の『Content-Type』を返す
+# 制御が入っているブラウザだということ。
+
+# 対応していないブラウザへの対策として以下の命令を記述しておく。
+# 『.webp』の拡張子があれば、『image/webp』という『mimeタイプ』を紐づける。
+# 今回は、対応しているのでコメントアウトする。
+AddType image/webp .webp
+
+# 『Request Headers』の中の『Accept』の項目。
+# ブラウザがどのmimeタイプを理解できるのかをサーバー側に教える。
+# Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,
+# image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+# これを検索条件に加えてやり、『Accept』に『image/webp』があればそれを返す『RewriteCond』を書く。
+
+RewriteCond %{HTTP_ACCEPT} image/webp
+RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/imgs/$1.webp -f
+RewriteRule /?imgs/(.*)\.(jpe?g|png) imgs/$1.webp
+```
