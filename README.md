@@ -1452,8 +1452,8 @@ send.php
 ```php
 <?php
 // 配列としてGETから受信する。
-$lines = $_POST["members"];
-print_r($_POST['members']);
+$lines = $_GET["members"];
+print_r($_GET['members']);
 
 // 配列としてPOSTから受信する。
 $lines = $_POST["members"];
@@ -1585,3 +1585,714 @@ setcookie('VISIT_COUNT', 1, [
 ]);
 
 ```
+
+## Session
+
+```php
+
+// Sessionをスタートさせる。
+// localには値は残らない、値はserver側に保持する。
+session_start();
+
+// Serverに値を送る。
+// スーパー・グローバル変数（連想配列）に値を代入する。
+$_SESSION['VISIT_COUNT'] = 1;
+echo $_SESSION['VISIT_COUNT'];
+
+// リロードして行われることは、
+// Application/Name/を見ると、『PHPSESSID』という項目ができる。
+// これがServerへ送られたSession ID。
+// Valueは、送られてくる端末ごとに違う。
+// Serverは、session IDをResponse HeaderのCookieに乗せて
+// 端末へ返しブラウザ内部で保持される。
+// 2回目以降、Session IDをキーとして値をやり取りする。
+// 端末とSession IDは一位。
+
+// では、先ほど、
+// $_SESSION['VISIT_COUNT'] = 1;
+// として値を格納したSession IDは、どこに保存されているのか？
+
+// 『phpinfo();』として使っているPHPの情報ページを開けて
+// 『tmp』という文言で検索する。
+// 『upload_tmp_dir』という項目にあるパスをターミナルで開け、
+// 『vim』するとテキスト情報として書かれていることを確認できる。
+```
+
+## 練習　CookieとSessionを操作する
+
+```PHP
+<?php
+
+/**
+ * SessionとCookieの理解度チェック
+ * 
+ * index.phpに訪問（リロード）するたびに訪問回数が
+ * １ずつ増える処理を実装してみてください。
+ * Session、Cookieの二つのパターンで実装してみましょう。
+ * 
+ * １回目
+ * 訪問回数は 1 回目です。
+ * 
+ * ２回目
+ * 訪問回数は 2 回目です。
+ * 
+ */
+?>
+
+<?php
+// Sessionを使った場合
+session_start();
+if (isset($_SESSION['VISIT_COUNT'])) {
+  // echo "2回目以降";
+  $_SESSION['VISIT_COUNT']++;
+} else {
+  // echo "1回目";
+  $_SESSION['VISIT_COUNT'] = 1;
+}
+?>
+
+<h1>訪問回数は <?php echo $_SESSION['VISIT_COUNT']; ?> 回目です。</h1>
+
+<?php 
+// Cookieを使った場合
+// ただし、ブラウザにデータが保存されるのでデータの改ざんができてしまう。
+// 値を変更する実装をしているが実戦ではない。
+$visit_count = 1;
+if (isset($_COOKIE['VISIT_COUNT'])) {
+  $visit_count = $_COOKIE['VISIT_COUNT'] + 1;
+}
+setcookie('VISIT_COUNT', $visit_count);
+?>
+
+<h1>訪問回数は <?php echo $_COOKIE['VISIT_COUNT']; ?> 回目です。</h1>
+```
+
+## Sessionを使った認証の仕組みの基本
+
+```PHP
+<h1>ログインフォーム</h1>
+<p>ID: test / PW: pwd</p>
+<form action="dashboard.php" method="POST">
+    <input type="text" name="user_name">
+    <input type="password" name="pwd">
+    <button type="submit">送信</button>
+</form>
+
+<a href="dashboard.php">ダッシュボードへ移動</a>
+```
+
+```PHP
+<?php
+// ファイル内のやり取りと誤解していた。
+// これは、Serverとのやり取り。
+// Sessionのkeyを符号にして値のやり取りをしている。
+
+// 認証系のアプリを作る際最初にすることは
+// Sessionを開始させること。
+// Sessionを儲けたHTML配下に対して領域を設ける。
+// Sessionのキーを符号に出入り自由な領域を作っているイメージ。
+session_start();
+
+// 確認すること、
+// 名前が入力されているか？
+// パスワードは入力されているか？
+// 入力された名前は正しいか？
+// 入力されたパスワードは正しいか？
+
+if (
+  isset($_POST['user_name'])
+  && isset($_POST['pwd']) 
+  && $_POST['user_name'] === 'test'
+  && $_POST['pwd'] === 'pwd'
+) {
+  // trueの場合は、Sessionに連想配列userとして値を設定していく。
+  // PHPの連想配列は『[]』なので要注意。気持ち悪いなぁ。
+  $_SESSION['user'] = [
+    'name' => $_POST['user_name'],
+    'pwd' => $_POST['pwd']
+  ];
+}
+
+if (!empty($_SESSION['user'])) {
+  echo "ログインしています。";
+} else {
+  echo "ログインしていません。";
+}
+?>
+```
+
+# Apacheの基礎
+
+## なんなのか？
+
+### プレゼンテーション層を担当している。
+
+> __Web3層アーキテクチャー__
+> * プレゼンテーション層
+>   * HTTPリクエストの送受信。
+>   * PHPのプログラムの呼び出し。
+>     * どのプログラムを実行するのかを制御する。
+> * アプリケーション層
+>   * ビジネスロジックの実行。
+> * データ層
+>   * データの保持（書き込み、取得）。
+
+### Apache === WEB Server ソフトウエア
+`モジュール`単位で機能を追加・削除ができる。
+
+#### 編集できる主なモジュール
+* mod_auth_basic:　基本認証を設定できる。
+* mod_dir:　ディレクトリ毎の設定を変更できる。
+* mod_rewrite:　URLの書き換えを行う。（__使用頻度高い__）
+...
+...
+
+## 設定
+
+* `httpd.conf` `.htaccess` に設定を記載する。
+* 大文字小文字を区別しない。
+* `セクション`によって適用範囲を指定。
+* 設定のことを`ディレクティブ`という。
+* `httpd.conf` `.htaccess` へ設定値を編集して追加・変更していく。
+
+## httpd.confを編集する
+
+`MAMP/conf/apache/httpd.conf` このファイルを観察する。
+
+__L29__
+これがディレクティブ
+```
+ServerRoot "/Applications/MAMP/Library"
+```
+
+`ServerRoot` => `ディレクティブ`
+`"/Applications/MAMP/Library"` => `ディレクティブ`に渡す`値`
+
+
+__L217__
+`DocumentRoot "/Applications/MAMP/htdocs"` 
+=> 公開用のドキュメント・ルートととしてApache　Web Serverで動く。
+
+__L227__
+これがセクション。
+
+```
+<Directory />
+  Options Indexes FollowSymLinks
+  AllowOverride None
+</Directory>  
+```
+`/`pathとそれ以降のディレクトリに対して、
+`Options`ディレクティブ、`AllowOverride`ディレクティブに値が設定される。
+
+## ALIAS
+特定の`path`を`ディレクトリ`に紐づける。
+
+```
+Alias /[エイリアス名] ディレクトリまでの絶対パス
+```
+パスに日本語が含まれている場合は特に、パスにはダブルクォーテーションで囲む。
+
+```
+Alias /apache "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/"
+```
+* `http://localhost:8888/apache/` => `ドキュメント・ルート + エイリアス名` の `URL` でアクセスすると `Alias`ディレクティブで指定した `path` に遷移することができる。
+* この場合は、ディレクトリの中のindex.htmlを描画する。
+* なお、ディレクトリに遷移させたいときは `path/to/derectory/` とディレクトリ名の後ろに `/` を付与すること。
+
+## コンテキスト
+
+### 種類
+* サーバー設定ファイル
+  * httpd.comf, srm.conf, access.conf etc
+* バーチャル・ホスト
+  * `<VirtualHost>`内で使用可能
+    * 一つのホストで複数のドメインを持つことができる技術
+* ディレクトリ
+  * `<Directory>`, `<Location>`, `<Files>` etc
+    * セクションを表す `<Directory>` ディレクティブをよく使うらしい。
+* .htacces
+  * `.htaccess` ファイル内で使用可能
+  
+### それぞれのディレクティブのコンテキスト
+
+各ディレクティブの詳細はリンクを参照する。
+https://httpd.apache.org/docs/2.4/mod/quickreference.html
+
+例）
+* `Alias` ディレクティブ
+  * コンテキスト:	__サーバ設定ファイル__, バーチャルホスト
+
+* `<Directory>` ディレクティブ
+  * コンテキスト:	__サーバ設定ファイル__, バーチャルホスト
+
+* `DirectoryIndex` ディレクティブ
+  * コンテキスト:	__サーバ設定ファイル__, バーチャルホスト, __ディレクトリ__, .htaccess
+
+`Alias` ディレクティブ, `<Directory>` ディレクティブ, `DirectoryIndex` ディレクティブともに、__サーバ設定ファイル__ つまり、`httpd.conf` へ設定を書くことができる。
+
+しかし、
+
+`DirectoryIndex` ディレクティブは、 `<Directory>` ディレクティブの中で設定できるが、
+
+`Alias` ディレクティブはコンテキストで __許可されていない__ から設定することはできないというお話です。
+
+
+## ディレクトリ
+
+`Alias` ディレクティブを使って、ディレクトリにアクセスしたら包含されている `index.html` を読む。
+
+別のファイルを読むようにするには、`DirectoryIndex` ディレクティブに `DirectoryIndex` ディレクティブへ表示させたいファイル名を値として与える。
+
+```
+<Directory "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/">
+  DirectoryIndex file1.html
+</Directory>
+
+```
+
+そのディレクトリに該当のファイルがない場合は、包含しているファイルやディレクトリをリスト形式で表示するように、`httpd.conf`の`<Directory>` ディレクティブに設定してある。
+
+その挙動を止めるようにするオプションは以下のようにする。
+
+```
+<Directory "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/">
+  DirectoryIndex file1.html
+  Options -Indexes
+</Directory>
+```
+
+`-Indexes` デフォルトの各種オプションから `Indexes` だけを削除する。
+`+Indexes` デフォルトの各種オプションへ `Indexes` を追加する。
+
+注意しないといけないのは、
+`Indexes` だけだと、デフォルトの各種オプション全てを `Indexes` で上書きしてしまうこと。
+
+# .htaccess
+
+* `AllowOverride All` を設定する。
+  * オプションを `All`（反対は、`None`）にすると、`.htaccess` の有無に関わらず全てほディレクトリに対して検索をかける。（パフォーマンスは落ちるが仕方ない。）
+* 基本的には `httpd.conf` に設定を追加する。
+* 配置したディレクトリ、サブディレクトリで有効になる。
+* 上位の階層で指定された設定は、下位の階層の設定により上書きされる。
+
+## 設定
+
+`httpd.conf` に `.htaccess` を有効にする設定をする。
+`httpd.conf` のファイルに、自身の設定をしている場所があるので確認する。
+
+```Apache
+<Directory "/Applications/MAMP/htdocs">
+    Options All
+    AllowOverride All
+    Require all granted	
+    XSendFilePath "/Applications/MAMP/htdocs"
+</Directory>
+````
+
+例えば、`httpd.conf` に 以下のディレクトリにディレクティブを設定したとして、これを `.htaccess` に移行する。
+
+```Apache
+# エイリアスを設定して、
+Alias /dir-test "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/dir-test/"
+
+# 値を『.htaccess』へ
+<Directory "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/dir-test/">
+  DirectoryIndex file2.html
+</Directory>
+```
+
+`dir-test` ディレクトリに `.htaccess` ファイルを作成し、ディレクティブに与えた値を書くだけ。
+
+ローカルでやると `http://localhost:8888/dir-test/` というURLができて、`file2.html` が表示される。該当ファイルがなければインデックスが表示される。
+
+# URLのリダイレクト
+
+異なるURLへ転送する。（ブラウザのURL表示も変更される。）
+
+* コンテキスト:	
+  * サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
+* 構文:
+  * Redirect [status] URL-path URL
+* status:
+  * 301 => 永続的なリダイレクトの設定に使用
+  * 302 => 一時的に引っ越したことを表す（デフォルト）
+* ブラウザの挙動:
+  * Header のレスポンスヘッダが300番台の場合
+  * Locationに指定されたURLへリダイレクト
+  * Redirectループに注意
+
+注意点として、該当のディレクトリの直前のディレクトリ（エイリアスでも構わない）までのURLは生きている必要がある。
+元々ないところからは話を始められないらしい。
+
+```apache
+# httpd.conf
+Alias /dir-test "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/dir-test/"
+```
+
+```apache
+# .htaccess
+インデックスはfile1.htmlとして、なければインデックスのリストが返る。
+DirectoryIndex file1.html
+`redirect-test`ディレクトリにアクセスされたら`apache`へリダイレクトする。
+Redirect /apache/redirect-test /apache
+```
+例えば、`redirect-test`ディレクトリは、`Alias` の `apache` の中にあるとして、
+`redirect-test`ディレクトリがなければ、または、そこにアクセスされたら、
+`apache` ディレクトリにリダイレクトされる。
+
+ちなみに、デフォルトでは、`status` は 301
+
+## 301と302
+
+### 302の挙動
+
+pathの変更があった場合に即時に反映される。
+
+```Apache
+Redirect 302 /apache/file1 /apache/dir-test/file1.html
+              ↓
+Redirect 302 /apache/file1 /apache/dir-test/file2.html
+```
+### 301の挙動
+
+ブラウザのキャッシュに保存されるので変更が効かなくなる。
+
+変更できるようにするには、`開発ツール` の `Network` で該当箇所を右クリックからメニューを出して `Clear browser cache` を選択してブラウザのキャッシュを消去する必要がある。
+
+```Apache
+Redirect 301 /apache/file1 /apache/dir-test/file1.html
+              ↓
+Redirect 301 /apache/file1 /apache/dir-test/file2.html
+```
+
+# RIWRITE URLの書き換え
+
+* RewriteRuleディレクティブを使う。
+* URLの書き換えを行うモジュール
+* 使用可能なコンテキスト
+  * サーバー設定, バーチャルホスト, ディレクトリ, .htaccess
+
+## 使用上の注意
+
+* `httpd.conf`の確認
+  * `RewriteEngine On` にする。
+  * `Options FollowSymLinks` がディレクトリで記述されている必要あり。
+  * 
+* 記述方法
+  * `RewriteRule Pattern Substitution [flags]`
+    * Pattern:
+      * Pathにマッチする条件を正規表現で表現
+    * Substitution:
+      * マッチした場合の書き換え後のパス、またはURL
+    * [flags] は任意のオプション
+* `Substitution` は以下の３パターンで設定可能
+  * URL-path:
+    * ドメイン以下のパスによる指定（一番最初のパスがルートディレクトリに存在しない場合にURL-pathとして認識する。）
+  * file-system path:
+    * PC上のディレクトリ、またはファイルへの絶対パス
+  * Absolute URL:
+    * http~の絶対URL
+  * - (dash) 書き換えしない（フラグのみ使用）
+    * フラグのみ使用する際に使用
+  * Flags:
+    * [R=code] リダイレクト。R=301とすると301リダイレクトを行う。
+    * [L] 処理を終了。以降のRewriteRuleは実行しない。
+    * [F] 403エラー（閲覧禁止）を発生させて、ページを表示しない。
+    * 複数使用したい場合は、[L, R]とカンマで区切る。
+  
+## やってみる
+
+### まずは、リライトをスタートの宣言
+
+```Apache
+RewriteEngine On
+```
+
+### リライトを書く
+
+```apache
+RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html [R]
+```
+
+#### Pattern（検索窓に投げるURLのこと）
+
+この`.htaccess` は、エイリアスが `/apache` に設定してあるので、パスの先頭に `/apache` をつける必要はない。
+`.htaccess` からの相対パスでファイルを指定する。
+
+#### Substitution（実際にリンクしたいURL）
+
+リンクの置き換えのファイル指定は、パスの先頭に『/apache』をつける必要があるので要注意。
+
+#### 検索窓に表示されるURL
+
+`URL` は `Pattern`（検索窓に投げたURL）が使われる。
+`URL` はブラウザには伝えられず、サーバー側で擬似的に切り替えの処理を行うから。
+これを `インターナル・リダイレクト` という。
+ここが `REDIRECT` とは大きく違うところ。
+
+
+# ログ
+
+## ログの設定と確認
+### [LogLevel] ディレクティブ
+
+どのレベルまでエラーログを出力するか
+
+9段階のレベルがある。下へ行くほど詳細な情報が得られる。活用できるかは別問題。
+
+デフォルトのレベルは、`warn`。
+
+* レベル	説明
+* emerg	緊急
+* alert	直ちに対処が必要
+* crit	致命的な状態
+* error	エラー
+* warn	警告（デフォルト）
+* notice	普通だが、重要な情報
+* info	追加情報
+* debug	デバッグメッセージ
+
+私の `httpd.conf` には `L323` に `LogLevel warn` となっていた。
+  
+#### 注意点
+
+コンテキスト:	サーバ設定ファイル, バーチャルホスト
+つまり、`.htaccess` には書けない。
+
+### [ErrorLog] ディレクティブ
+
+[LogLevel] ディレクティブで設定した内容が、[ErrorLog] ディレクティブに書き出される。
+
+コンテキスト: サーバ設定ファイル, バーチャルホスト
+
+私の `httpd.conf` には `L316` に
+`ErrorLog "/Applications/MAMP/logs/apache_error.log"`
+とログファイルまでのパスが記述されている。
+
+本番環境でエラーログを確認する必要が出てくる（フロントエンドでもそんな場面に遭遇するのかな？？？）ので、その際にはここをヒントにファイルまで辿り着くこと。
+
+### [CustomLog] ディレクティブ
+ユーザーが独自で設定したログを書き出すファイルを指定する。
+
+コンテキスト:	サーバ設定ファイル, バーチャルホスト
+
+### [LogFormat] ディレクティブ
+
+CustomLogの出力フォーマットを決定
+
+コンテキスト:	サーバ設定ファイル, バーチャルホスト
+
+### ログの確認
+
+Unix系（Mac, Linux）
+```zsh
+# tail -f ファイルパス
+```
+
+とりあえず、
+
+```Apache
+ErrorLog "/Applications/MAMP/logs/apache_error.log"
+CustomLog "/Applications/MAMP/logs/apache_access.log" common
+```
+
+エラーとアクセスに関するログは出力できるようになっているので、`tail -f`メソッドを使って確認できるようになろうという話。
+
+私の`Apache`のバージョンは、
+
+```bash
+which apachectl // => Version 2.4 だった。
+```
+なので、ターミナルで、
+
+```bash
+tail -f /Applications/MAMP/logs/apache_error.log
+```
+とすれば __リライト__ の __ログ__ を確認できる。
+
+
+で、話が前後するが、httpd.confに書いてある設定を書き換える。
+
+```apache
+# LogLevel warn
+
+# ** ログの出力 ** 
+# rewrite logの出力
+# Ifがついているので振り分け可能。
+# 私は、『version 2.4』なので下が適用されるはず。
+<IfVersion < 2.3>
+    # version 2.2
+    LogLevel warn
+    # 1 => 小 <==> 9 => 大
+    RewriteLogLevel 9
+    RewriteLog "C:/MAMP/logs/rewrite.log"
+    # Mac,Linux
+    # RewriteLog "/Applications/MAMP/logs/rewrite.log"
+</IfVersion>
+
+<IfVersion > 2.3>
+    # version 2.4
+    LogLevel warn rewrite:trace8
+    # リライト・ログもエラー・ログに出力される。
+    # ここ => ErrorLog "/Applications/MAMP/logs/apache_error.log"
+</IfVersion>
+```
+
+__リライト__ してみて `tail -f` で確認。ちゃんと出力している!
+
+## [Rewrite]で後方参照を使う
+
+()グループ化を使ってパスを切り取る
+$N: $1 ~ $9
+[正規表現]よく使う表現
+. 任意の一文字
+* 0回以上の繰り返し
++ 1回以上の繰り返し
+{n} n回の繰り返し
+[] 文字クラスの作成
+[abc] aまたはbまたはc
+[^abc] aまたはbまたはc以外
+[0-9] 0~9まで
+[a-z] a~zまで
+$ 終端一致
+^ 先頭一致
+\w 半角英数字とアンダースコア
+\d 数値
+\ エスケープ
+() 文字列の抜き出し
+
+RewriteRule rewrite-test/imgs/(\d{3}).jpg imgs/$1.png
+RewriteRule rewrite-test/sub1/(.+\.html) sub2/$1
+
+## 渡ってきた文字列が全て確認できる。
+
+```apache
+[Sat May 11 17:18:46.105637 2024]
+        [rewrite:trace3] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+
+      => パターンを適用させてURLを見つける。
+        applying pattern 'rewrite-test/imgs/(\\d{3}).jpg' to uri 'rewrite-test/imgs/150.jpg'
+
+[Sat May 11 17:18:46.105667 2024]
+        [rewrite:trace2] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+
+      => URLをここで置換する。
+        rewrite 'rewrite-test/imgs/150.jpg' -> 'imgs/150.png'
+[Sat May 11 17:18:46.105684 2024]
+
+        [rewrite:trace3] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+        add per-dir prefix: imgs/150.png -> /Applications/MAMP/htdocs/fullstack-webdev-master/...imgs/150.png
+[Sat May 11 17:18:46.105700 2024]
+        [rewrite:trace2] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+        trying to replace prefix /Applications/MAMP/htdocs/fullstack-webdev-master/... with /apache/rewrite-test/
+[Sat May 11 17:18:46.105715 2024]
+        [rewrite:trace5] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        strip matching prefix: /Applications/MAMP/htdocs/fullstack-webdev-master/...imgs/150.png -> imgs/150.png
+[Sat May 11 17:18:46.105728 2024]
+        [rewrite:trace4] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        add subst prefix: imgs/150.png -> /apache/rewrite-test/imgs/150.png
+[Sat May 11 17:18:46.105757 2024]
+        [rewrite:trace1] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#1398126a0/initial] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+
+      => パターンのルール検査が全て終わったタイミングでインターナル・リダイレクが走る。
+      => この時点でApache内部でリダイレクト処理がかかる。
+        internal redirect with /apache/rewrite-test/imgs/150.png [INTERNAL REDIRECT]
+
+[Sat May 11 17:18:46.105905 2024]
+        [rewrite:trace3] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#13a80e958/initial/redir#1] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+        strip per-dir prefix: /Applications/MAMP/htdocs/fullstack-webdev-master/...rewrite-test/imgs/150.png -> rewrite-test/imgs/150.png
+[Sat May 11 17:18:46.105927 2024]
+        [rewrite:trace3] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#13a80e958/initial/redir#1] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+
+      => またサーバー上で検索がかかる。
+        applying pattern 'rewrite-test/imgs/(\\d{3}).jpg' to uri 'rewrite-test/imgs/150.png'
+
+[Sat May 11 17:18:46.105942 2024]
+        [rewrite:trace1] [pid 11878] mod_rewrite.c(486): [client ::1:64901] ::1 - - 
+        [localhost/sid#15903a488][rid#13a80e958/initial/redir#1] 
+        [perdir /Applications/MAMP/htdocs/fullstack-webdev-master/...] 
+
+      => ここでサーバーの処理は終了し、ブラウザ側にレスポンスが返却される。という流れ。
+        pass through /Applications/MAMP/htdocs/fullstack-webdev-master/...rewrite-test/imgs/150.png
+```
+
+# 書き換えの条件を付与
+
+## RewriteCond ディレクティブ
+
+Rewrite ディレクティブは『パス』を使ってリライトしていた、
+RewriteCond ディレクティブは、条件にマッチした場合にリライトを行うというもの。
+つまり、クエリで渡ってきた値に対してリライトを行ってみる。
+
+### 文法
+`RewriteCond TestString CondPatter`
+
+* TestString
+  * テスト文字列。%{HTTP_HOST}などのシステム変数を検査する。
+    * %{HTTP_HOST} => localhost:8888のこと。
+    * %{QUERY_STRING} => 例えば`?`に続けて`var=1`というクエリを書いたりする。
+    * その他、詳しくはリンクを参照する。（https://httpd.apache.org/docs/2.2/ja/mod/mod_rewrite.html#RewriteCond）
+
+* CondPatter
+  * 正規表現で検査対象の文字列がマッチするかを検査する。
+  * ()を使うと、後方参照として%1〜%9までの値を取得できる。
+
+```apache
+DirectoryIndex file1.html
+RewriteEngine On
+RewriteBase /apache/rewrite-test/
+# クエリのパラメータでファイル名が渡ってきた時に、そのファイルを出力する条件を書く。
+# クエリのパラメータで渡ってきたファイル名は『%{QUERY_STRING}』に格納される。
+# それを、ブラウザの検索窓で『URL』+『?』の次に書いた
+# 『p』という名前で渡ってきた『(.+)』の正規表現で括れる値を取り出してやる。
+RewriteCond %{QUERY_STRING} p=(.+)
+# 取り出したパラメータ『(.+)』を後方参照で使用する。
+# なお、『?』をつけないと無限に『%1』にマッチしようとしてURLのファイル名がおかしくなる。
+# そして、『[R]』オプションをつけるとブラウザの検索窓にマッチした結果が出てくるのでバグ探しのネタになる。
+RewriteRule rewrite-test/sub1 sub1/%1? [R]
+
+# 検索窓でのクエリについて複数の検索ができる。
+# 例えば、
+# http://localhost:8888/apache/rewrite-test/sub1/?p=file.html&?p=index.html
+RewriteCond %{QUERY_STRING} p=(.+)&?
+RewriteRule rewrite-test/sub1 sub1/%1?
+
+# ファイルが存在するかを『真』『偽』で返す。
+# 存在する場合にリダイレクトを実行しろと宣言。
+# RewriteCond %{REQUEST_FILENAME} -f
+# 存在しない場合にリダイレクトを実行しろと宣言。
+RewriteCond %{REQUEST_FILENAME} !-f
+# sub2ディレクトリの中に、ファイル名で指定したファイルがない場合、
+# sub1ディレクトリの中のファイル名で指定したファイルを探して表示しなさい。という命令。
+RewriteRule rewrite-test/sub2/(.+) sub1/$1
+
+RewriteCond %{REQUEST_FILENAME} !-d
+# sub2ディレクトリの中に、指定したディレクトリがない場合、
+# sub1ディレクトリの中のディレクトリを探し、index.htmlを表示させる。
+RewriteRule rewrite-test/sub2/(.+) sub1/$1
+
+# スタックさせると『&&』となる。よく使うらしい。
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+# sub2ディレクトリの中に、指定したディレクトリがない場合、
+# sub1ディレクトリの中のディレクトリを探し、index.htmlを表示させる。
+RewriteRule rewrite-test/sub2/(.+) sub1/$1
+```
+

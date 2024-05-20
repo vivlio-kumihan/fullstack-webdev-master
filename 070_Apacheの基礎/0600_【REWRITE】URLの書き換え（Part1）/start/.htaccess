@@ -1,10 +1,11 @@
 # [RewriteRule] リライト
-# 用途：URLの書き換え
+# URLの書き換えを行うモジュール
 # 
-# コンテキスト：　サーバー設定, バーチャルホスト, ディレクトリ, .htaccess
+# RewriteRuleディレクティブを使う。
+# 使用可能なコンテキスト：サーバー設定, バーチャルホスト, ディレクトリ, .htaccess
 # 
 # ** 使用上の注意 **
-# RewriteEngine OnをRewriteRuleの前に呼び出し。
+# `RewriteEngine On` をRewriteRuleの前に呼び出し。
 # Options FollowSymLinks がディレクトリで記述されている必要あり。
 # 
 # RewriteRule Pattern Substitution [flags]
