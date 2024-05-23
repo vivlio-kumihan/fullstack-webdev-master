@@ -2640,18 +2640,167 @@ __データ型__
 
 #### 書いてみる
 
-```sql
-/* データベースの作成 */
-create database test_db;
+__データベースの作成__
 
-/* データベースの削除 */
+```sql
+create database test_db;
+```
+
+__データベースの削除__
+
+```sql
 drop database test_db;
 ```
 
+__テーブルの作成__
+
 ```sql
-/* テーブルの作成 */
 create table test_db.test_table (
 	id int(6) unsigned default 0 comment 'ID',
 	val varchar(20) default 'hello' comment '値'
+);
+```
+
+__テーブルの削除__
+
+```sql
+drop table test_db.test_table;
+```
+
+__describe（記述する）__
+
+DBeaver（コンソール）でデータベースを表組みになっている状態で確認する。
+
+```sql
+-- テーブルをデフォルトで出力。
+desc test_db.test_table ;
+-- commentありで出力
+show full columns from test_db.test_table ;
+-- 現時点でのクエリの内容を出力する。
+show create table test_db.test_table ;
+```
+
+#### アクティブなDBの切り替え
+
+`useキーワード`を使って`アクティブ`なDBを設定できる。
+
+`test_db.test_table`と記述していたものが前をDBを省略して、
+`test_table`とかける。
+
+また、現在実行中のDBを確認するには、
+
+`select database();`
+
+__ここまでのまとめ__
+
+```sql
+-- DB作成。
+create database test_db;
+-- DB削除。
+drop database test_db;
+-- アクティブなDBの切り替え。
+use test_db;
+-- テーブルを作成する。
+create table test_table (
+	id int(6) unsigned default 0 comment 'ID',
+	val varchar(20) default 'hello' comment '値'
+);
+-- テーブルを削除する。
+drop table test_table ;
+-- テーブルの詳細を記述する。
+desc test_table ;
+-- columns付きでテーブルの詳細を記述する。
+show full columns from test_table ;
+-- 現時点でのクエリの内容が出力される。
+show create table test_table ;
+-- 現在実行中のデータベースの確認。
+select databese() ;
+```
+
+#### 制約（CONSTANT）
+
+制約は、カラム・テーブルに対して行う。
+制約を与えることで、カラム・テーブルの状態を正しい状態に保つことができる。
+
+__制約の種類と内容__
+|名称|内容|
+|---|---|
+|UNIQUE|__一意制約__<br />カラムに制約をかけた場合、登録される値は必ず一意であることを担保する。|
+|NOT NULL|__NOT NULL__<br />制約カラムに登録される値には必ず値があることを担保する|
+|PRIMARY KEY|__主キー制約__|
+|FOREIGN KEY|__外部キー制約__|
+|CHECK|__チェック制約 (MySQL8.0)__<br /><small>※実装で使う機会はない。</small>|
+
+
+* __表制約__
+  * 表（テーブル）に対して行う制約
+    例）複合主キー、外部キー制約など
+
+* __列制約__
+  * 列に対して行う制約
+    例）NOT NULL 制約など
+
+
+*/
+create table test_table (
+ id int not null default 0 comment 'ID',
+ val varchar(20) unique comment '値'
+);
+
+__書式__
+
+```sql
+create table テーブル名 (
+    カラム名 データ型 列制約, 表制約
+);
+```
+
+* `not null`の制約をかけたので、`Null`の欄が『Nullが入ってはいけない。』という意味で『NO』が入る。
+* `unique`と制約をかけたので、`Key`の欄が『UNI』となり、一意であることを担保している。
+```sql
+create table test_table (
+	id int not null default 0 comment 'ID',
+	val varchar(20) unique comment '値'
+)
+
+use test_db;
+show full columns from test_table ;
+```
+
+#### 主キーの作成（PK: Primary Key）
+
+主キー（レコードを一位に特定するキー）を作成する。
+
+|商品ID|商品名|数量|
+|:---:|:---|---:|
+|__001__|タンス|10|
+|__002__|椅子|5|
+|__003__|テーブル|20|
+|__004__|タンス|100|
+
+__主キーが一つの場合__
+
+```sql
+-- 一旦テーブルを削除する。
+drop table test_table ;
+-- PK有りのテーブルを作成する。
+create table test_table (
+	key1 int primary key
+);
+show full columns from test_table;
+
+-- KeyがPRIになっており、プライマリー・キーに設定されたことを示している。
+-- 何も制約を指示しなくても、not null, uniqueはついている。
+```
+
+
+__複合主キーを設定__
+```sql
+-- 複数のキーで値を特定できればいいので、ユニークである必要はない。
+-- Nullになっていなければいい。
+create table test_table (
+	key1 int,
+	key2 int,
+	primary key (key1, key2)
 );
 ```
