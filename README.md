@@ -2741,12 +2741,6 @@ __制約の種類と内容__
     例）NOT NULL 制約など
 
 
-*/
-create table test_table (
- id int not null default 0 comment 'ID',
- val varchar(20) unique comment '値'
-);
-
 __書式__
 
 ```sql
@@ -2804,3 +2798,107 @@ create table test_table (
 	primary key (key1, key2)
 );
 ```
+
+#### 自動IDの付与（AUTO INC）
+
+
+Key_nameがPRIMAEYになっていたらOK
+
+auto incrementは1つのテーブルにつき1つだけ。
+デフォルト値をわざわざ指定する必要はないので、デフォルト値はつけられない。
+
+__自動IDを付与する__
+
+主キーは一意の値であればなんでもいい場合に付与する。
+
+`auto_increment`を設定する場合にインデックスが振られるようにしないといけない。
+`primary key` または `unique`をつけることでインデックスが振られるようにできる。
+
+```sql
+create table test_table (
+	key1 int auto_increment primary key
+)
+```
+
+テーブルを確認する。
+```sql
+show full columns from test_table ;
+または、
+desc test_table ;
+```
+
+インデックスが振られるようになっているかを確認する。
+`Key_name`が`PRIMAEY`になっていれば設定OK。
+```sql
+show index from test_table;
+```
+
+#### テーブル定義の変更（ALTER TABLE）
+
+__名前と年齢のカラムを追加する。__
+
+```sql
+alter table test_table 
+add column name varchar(20) not null default '髙廣信之' comment '氏名',
+add column age int(11) not null default 59 comment '年齢';
+```
+
+__任意のカラムの後ろに新規でカラムを追加する。__
+
+```sql
+alter table test_table 
+add column gender varchar(10) not null default '男' comment '性別' after name;
+```
+
+__カラムの最初に追加する。__
+
+```sql
+alter table test_table 
+add column country varchar(20) not null default '日本' comment '日本' first;
+```
+
+__カラムの属性を変更する。__
+カラムの情報を変更すると元のものは削除されて新たに設定された値だけになる。
+例えば、varchar(20) だったのを　text(100)だけだとそれ以降にせってしたあった情報は全てなくなる。
+
+```sql
+alter table test_table 
+modify column gender varchar(10) not null default 'man' comment 'gender';
+```
+
+__カラムを削除する__。
+```sql
+ALTER table test_table 
+drop column country;
+```
+
+__primary keyを削除する。__
+auto incrementを削除してからではないとエラーになる。
+エラーが出たらChatGPTで調べる。解決してくれる。
+
+```sql
+ALTER table test_table 
+modify column key1 int(11) not null,
+drop primary key;
+```
+
+#### テーブルを作成
+
+```sql
+create table shops (
+id int(10) unsigned auto_increment primary key,
+name varchar(20) not null,
+pref_id int(2) unsigned not null);
+```
+
+複合主キーがある場合。
+```sql
+create table stoks (
+product_id int(10) unsigned,
+shop_id int(10) unsigned,
+amount int(10) unsigned not null,
+primary key (product_id, shop_id)
+);
+```
+
+primary_keyした時点でnot_nullつくよ。
