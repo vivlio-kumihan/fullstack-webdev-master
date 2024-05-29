@@ -1,3 +1,31 @@
+IPアドレス
+インターネット上で通信する端末が必ず持つ住所。
+192.168.0.1
+
+二種類のIPアドレス
+グローバルIP
+プライベートIP
+
+URL
+
+`http://www.example.com:80/contextPath`
+
+|記述|説明|
+|---|---|
+|http:|スキーム|
+|www|ホスト|
+|example.com|ドメイン|
+|:80|ポート|
+|contextPaht|コンテキスト・パス|
+
+コンテキスト・パス
+ドメイン部分からWEBアプリケーション毎のパスのことを指す。
+
+ドメインとIP
+
+DNSサーバーがIPを教えてくれる。
+ローカルからドメインをリクエストするとDNSサーバーがIPアドレスを解決してくれる。名前解決
+
 ## 自己代入
 ```php
 <?php
@@ -1886,18 +1914,30 @@ __httpd.conf L227__
 注意しないといけないのは、
 `Indexes` だけだと、デフォルトの各種オプション全てを `Indexes` で上書きしてしまうこと。
 
-
-
-
-
 # .htaccess
 
-* `AllowOverride All` を設定する。
+* `httpd.conf`の`AllowOverride All` を設定する。
   * オプションを `All`（反対は、`None`）にすると、`.htaccess` の有無に関わらず全てほディレクトリに対して検索をかける。（パフォーマンスは落ちるが仕方ない。）
 * 基本的には `httpd.conf` に設定を追加する。
 * 配置したディレクトリ、サブディレクトリで有効になる。
-* 上位の階層で指定された設定は、下位の階層の設定により上書きされる。
+* 下位の階層の設定は、上位の階層で指定された設定を上書きできる。
+* 下位の設定で変更があっても、上位の設定は維持される、上書きされない。
+  
+__.htaccessが有効になる範囲に留意する。__
 
+* 例えば、
+  * dir1
+    * dir2-1
+    * dir2-2
+      * dir3-1
+      * dir3-2
+  * .htaccessファイルが、
+    * dir1 => 自身と配下の全てのディレクトリに効く。
+    * dir2-2 => 自身と配下の全てのディレクトリに効く。
+    * dir3-1 => 自身のディレクトリに効く。
+  * __dir3の両方で、それぞれに設定を変更した場合に各個に効く。__
+  * __dir2-2は、配下のディレクトリで変更があっても関係ない。自身の設定を維持する。__
+  
 ## 設定
 
 `httpd.conf` に `.htaccess` を有効にする設定をする。
@@ -1918,13 +1958,13 @@ __httpd.conf L227__
 # エイリアスを設定して、
 Alias /dir-test "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/dir-test/"
 
-# 値を『.htaccess』へ
+# 値だけをを『.htaccess』、設定後はコメントアウトか削除。
 <Directory "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/dir-test/">
   DirectoryIndex file2.html
 </Directory>
 ```
 
-`dir-test` ディレクトリに `.htaccess` ファイルを作成し、ディレクティブに与えた値を書くだけ。
+`dir-test` ディレクトリに `.htaccess` ファイルを作成し、ディレクティブに抜き取った値を書くだけ。
 
 ローカルでやると `http://localhost:8888/dir-test/` というURLができて、`file2.html` が表示される。該当ファイルがなければインデックスが表示される。
 
@@ -1936,27 +1976,23 @@ Alias /dir-test "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの
   * サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
 * 構文:
   * Redirect [status] URL-path URL
+  * [status] => 301, 302など。。。
 * status:
-  * 301 => 永続的なリダイレクトの設定に使用
-  * 302 => 一時的に引っ越したことを表す（デフォルト）
+  * 301 
+    * 永続的なリダイレクトの設定に使用
+    * WEBページ（サーバー）の引越しした際に用いいられる。従前のURLでアクセスされたら新しいURLへの転送を固定する必要がある場合。
+  * 302
+    * 一時的に表示ページを変更したい場合。例えば、工事中のページにアクセスされた場合に関連するページに飛ばす。（デフォルト）
 * ブラウザの挙動:
   * Header のレスポンスヘッダが300番台の場合
   * Locationに指定されたURLへリダイレクト
   * Redirectループに注意
 
-注意点として、該当のディレクトリの直前のディレクトリ（エイリアスでも構わない）までのURLは生きている必要がある。
-元々ないところからは話を始められないらしい。
-
-```apache
-# httpd.conf
-Alias /dir-test "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/dir-test/"
-```
-
-```apache
-# .htaccess
-インデックスはfile1.htmlとして、なければインデックスのリストが返る。
-DirectoryIndex file1.html
 `redirect-test`ディレクトリにアクセスされたら`apache`へリダイレクトする。
+
+`ドメイン`より`下のURL`は完全に書かないといけない。
+
+```apache
 Redirect /apache/redirect-test /apache
 ```
 例えば、`redirect-test`ディレクトリは、`Alias` の `apache` の中にあるとして、
@@ -1988,6 +2024,51 @@ Redirect 301 /apache/file1 /apache/dir-test/file1.html
 Redirect 301 /apache/file1 /apache/dir-test/file2.html
 ```
 
+# ログの設定と確認
+
+## [LogLevel]
+
+どのレベルまでエラーログを出力するか。
+`httpd.confを参照して確認。`
+
+`コンテキスト: サーバ設定ファイル, バーチャルホスト`
+
+|レベル|説明|
+|---|---|
+|emerg|緊急|
+|alert|直ちに対処が必要|
+|crit|致命的な状態|
+|error|エラー|
+|warn|警告（デフォルト）|
+|notice|普通だが、重要な情報|
+|info|追加情報|
+|debug|デバッグメッセージ|
+
+## [ErrorLog]
+エラーログの吐き出し場所を指定
+`コンテキスト: サーバ設定ファイル, バーチャルホスト`
+
+## [CustomLog]
+ログファイルの吐き出し場所を指定
+`コンテキスト:	サーバ設定ファイル, バーチャルホスト`
+
+記号の意味は以下のサイトに説明がある。
+
+[Apache モジュール mod_log_config](https://httpd.apache.org/docs/2.4/ja/mod/mod_log_config.html)
+
+## [LogFormat]
+CustomLogの出力フォーマットを決定
+`コンテキスト:	サーバ設定ファイル, バーチャルホスト`
+
+## ログの確認
+Unix系（Mac, Linux）
+```
+tail -f ファイルパス
+```
+```
+tail -f /Applications/MAMP/logs/apache_error.log
+```
+
 # RIWRITE URLの書き換え
 
 * RewriteRuleディレクティブを使う。
@@ -2015,7 +2096,7 @@ Redirect 301 /apache/file1 /apache/dir-test/file2.html
     * PC上のディレクトリ、またはファイルへの絶対パス
   * Absolute URL:
     * http~の絶対URL
-  * - (dash) 書き換えしない（フラグのみ使用）
+  * `-` (dash) 書き換えしない（フラグのみ使用）
     * フラグのみ使用する際に使用
   * Flags:
     * [R=code] リダイレクト。R=301とすると301リダイレクトを行う。

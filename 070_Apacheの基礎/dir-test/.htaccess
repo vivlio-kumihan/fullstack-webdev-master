@@ -1,1 +1,2 @@
-# DirectoryIndex file1.html
+DirectoryIndex file1.html
+Options +Indexes

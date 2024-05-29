@@ -1,3 +1,10 @@
+# DirectoryIndex index.html
+
+# Redirect /apache/dir-test /apache/
+
+RewriteEngine On
+RewriteRule redirect-test/index.html /apache/redirect-test/tmp.html
+
 # DirectoryIndex file1.html
 # Options -Indexes
 
@@ -198,6 +205,6 @@ RewriteBase /apache/rewrite-test/
 # image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
 # これを検索条件に加えてやり、『Accept』に『image/webp』があればそれを返す『RewriteCond』を書く。
 
-RewriteCond %{HTTP_ACCEPT} image/webp
-RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/imgs/$1.webp -f
-RewriteRule /?imgs/(.*)\.(jpe?g|png) imgs/$1.webp
+# RewriteCond %{HTTP_ACCEPT} image/webp
+# RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/imgs/$1.webp -f
+# RewriteRule /?imgs/(.*)\.(jpe?g|png) imgs/$1.webp
