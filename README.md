@@ -1752,7 +1752,7 @@ if (!empty($_SESSION['user'])) {
 * `httpd.conf` `.htaccess` に設定を記載する。
 * 大文字小文字を区別しない。
 * `セクション`によって適用範囲を指定。
-* 設定のことを`ディレクティブ`という。
+* `ディレクティブ`によって設定を変更する。
 * `httpd.conf` `.htaccess` へ設定値を編集して追加・変更していく。
 
 ## httpd.confを編集する
@@ -1760,8 +1760,9 @@ if (!empty($_SESSION['user'])) {
 `MAMP/conf/apache/httpd.conf` このファイルを観察する。
 
 __L29__
-これがディレクティブ
-```
+`ServerRoot`の部分、これが`ディレクティブ`。
+
+```apache
 ServerRoot "/Applications/MAMP/Library"
 ```
 
@@ -1776,26 +1777,34 @@ __L217__
 __L227__
 これがセクション。
 
-```
+```apache
 <Directory />
   Options Indexes FollowSymLinks
   AllowOverride None
 </Directory>  
 ```
+
 `/`pathとそれ以降のディレクトリに対して、
 `Options`ディレクティブ、`AllowOverride`ディレクティブに値が設定される。
 
 ## ALIAS
-特定の`path`を`ディレクトリ`に紐づける。
+特定の`path`を`ディレクトリ`や`ファイル`に紐づける。
 
-```
+```apache
 Alias /[エイリアス名] ディレクトリまでの絶対パス
+または、
+Alias /[エイリアス名] ファイルまでの絶対パス
 ```
 パスに日本語が含まれている場合は特に、パスにはダブルクォーテーションで囲む。
 
-```
+```apache
 Alias /apache "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/"
+
+または、
+
+Alias /apache_hello "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/0100_【ALIAS】URLをマッピング/start/index.html"
 ```
+
 * `http://localhost:8888/apache/` => `ドキュメント・ルート + エイリアス名` の `URL` でアクセスすると `Alias`ディレクティブで指定した `path` に遷移することができる。
 * この場合は、ディレクトリの中のindex.htmlを描画する。
 * なお、ディレクトリに遷移させたいときは `path/to/derectory/` とディレクトリ名の後ろに `/` を付与すること。
@@ -1844,18 +1853,27 @@ https://httpd.apache.org/docs/2.4/mod/quickreference.html
 
 別のファイルを読むようにするには、`DirectoryIndex` ディレクティブに `DirectoryIndex` ディレクティブへ表示させたいファイル名を値として与える。
 
-```
+このようにして、任意のファイルへのアクセスを取り扱うことができる。
+
+```apache
 <Directory "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/">
   DirectoryIndex file1.html
 </Directory>
-
 ```
 
 そのディレクトリに該当のファイルがない場合は、包含しているファイルやディレクトリをリスト形式で表示するように、`httpd.conf`の`<Directory>` ディレクティブに設定してある。
 
+__httpd.conf L227__
+```apache
+<Directory />
+    Options Indexes FollowSymLinks
+    AllowOverride None
+</Directory>
+```
+
 その挙動を止めるようにするオプションは以下のようにする。
 
-```
+```apache
 <Directory "/Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/">
   DirectoryIndex file1.html
   Options -Indexes
@@ -1867,6 +1885,10 @@ https://httpd.apache.org/docs/2.4/mod/quickreference.html
 
 注意しないといけないのは、
 `Indexes` だけだと、デフォルトの各種オプション全てを `Indexes` で上書きしてしまうこと。
+
+
+
+
 
 # .htaccess
 
