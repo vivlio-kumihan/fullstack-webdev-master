@@ -2115,7 +2115,7 @@ RewriteEngine On
 ### リライトを書く
 
 ```apache
-RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html [R]
+RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html
 ```
 
 #### Pattern（検索窓に投げるURLのこと）
@@ -2131,8 +2131,86 @@ RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html [R]
 
 `URL` は `Pattern`（検索窓に投げたURL）が使われる。
 `URL` はブラウザには伝えられず、サーバー側で擬似的に切り替えの処理を行うから。
-これを `インターナル・リダイレクト` という。
+このように`RewriteRule`を使った、Apacheの内部で行われるリダイレクトの処理を `インターナル・リダイレクト` という。
 ここが `REDIRECT` とは大きく違うところ。
+
+これに`Rオプション`をつけると普通のリダイレクトになる。
+__URLのちゃんと切り替わる__。
+
+```apache
+RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html [R]
+```
+
+### もっと詳しくリライト
+
+Substitution（実際にリンクしたいURL）については、
+
+#### URL-path:
+
+* ドメイン以下のパスによる指定
+
+#### file-system path:
+
+* PC上のディレクトリ、またはファイルへの絶対パス
+* .htaccessの中では使えない。
+
+#### Absolute URL:
+
+* http~の絶対URL
+* あとでやる。
+
+#### Flags:
+* [R=code] リダイレクト。R=301とすると301リダイレクトを行う。
+* [L] 処理を終了。以降のRewriteRuleは実行しない。
+* [F] 403エラー（閲覧禁止）を発生させて、ページを表示しない。
+
+#### - (dash) 書き換えしない（フラグのみ使用）
+
+* フラグのみ使用する際に使用
+
+書き換えをせずに[F]オプションをつけると
+```apache
+RewriteRule redirect-test/index.html - [F]
+
+// => Forbidden(禁止)
+// => You don't have permission to access this resource.
+```
+
+#### RewriteRuleでやるインターナル・リダイレクト
+
+__その1__
+
+検索窓に入力して、結果は意図通り出力するが、検索窓に変化なし。
+
+```apache
+RewriteRule redirect-test/index.html /apache/redirect-test/tmp.html
+```
+
+__その2__
+
+フラグをつける。`[R]`でリダイレクトにしてみる。
+
+```apache
+RewriteRule redirect-test/index.html /apache/redirect-test/tmp.html [R]
+```
+
+__その3__
+
+`jpg`ファイルを`png`へリダイレクトする。
+検索窓には拡張子が`jpg`のままだけど検証で見ると`png`にちゃんとリダイレクトしている。
+
+```apache
+RewriteRule redirect-test/imgs/150.jpg /apache/redirect-test/imgs/150.png
+```
+
+__その4__
+
+単純に、sub1/index.htmlをsub2/index.htmlへリダイレクトなら問題ないが、この記載では意図しない動きになることがある。
+この書式の状態で、sub1/file.html sub1/file2.htmlにアクセスすると全てsub2（sub2/index.html）へアクセスしてしまうから。
+
+```apache
+RewriteRule redirect-test/sub1/ /apache/redirect-test/sub2/
+```
 
 
 # ログ
@@ -2243,6 +2321,8 @@ tail -f /Applications/MAMP/logs/apache_error.log
 ```
 
 __リライト__ してみて `tail -f` で確認。ちゃんと出力している!
+
+
 
 ## [Rewrite]で後方参照を使う
 
