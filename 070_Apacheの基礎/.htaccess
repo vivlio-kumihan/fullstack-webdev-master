@@ -1,11 +1,36 @@
-RewriteEngine On
+# RewriteEngine On
 
-# RewriteRule redirect-test/index.html - [F]
-# RewriteRule redirect-test/index.html /apache/redirect-test/tmp.html
-# RewriteRule redirect-test/index.html /apache/redirect-test/tmp.html [R]
-# RewriteRule redirect-test/imgs/150.jpg /apache/redirect-test/imgs/150.png
+# RewriteRule rewrite-test/index.html - [F]
+# RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html
+# RewriteRule rewrite-test/index.html /apache/rewrite-test/tmp.html [R]
+# RewriteRule rewrite-test/imgs/150.jpg /apache/rewrite-test/imgs/150.png
 
 # この記載では不十分。
 # この書式の状態で、sub1/file.html sub1/file2.htmlにアクセスすると全てsub2（sub2/index.html）へアクセスしてしまうから。
-# RewriteRule redirect-test/sub1/ /apache/redirect-test/sub2/
+# RewriteRule rewrite-test/sub1/ /apache/rewrite-test/sub2/
+
+RewriteEngine On
+RewriteBase /apache/rewrite-test/
+# RewriteRule rewrite-test/index.html tmp.html
+# RewriteRule rewrite-test/imgs/150.jpg imgs/150.png
+
+# 記載が不十分だった件
+# RewriteRule rewrite-test/sub1/ sub2/
+# RewriteRule rewrite-test/sub1/(.+\.html) sub2/$1
+# RewriteRule rewrite-test/imgs/(\d+).jpg imgs/$1.png
+# Redirect /apache/dir-test /apache
+
+# RewriteCond %{HTTP_HOST} ^localhost
+# RewriteRule rewrite-test/sub1/(.+\.html) sub2/$1
+# RewriteCond %{QUERY_STRING} p=(.+)
+# .* は任意の文字列に一致する正規表現です。
+# - は置換部分で、ここでは「何も変更しない」という意味です。
+# [F] は「Forbidden」で、403 Forbidden ステータスコードを返すフラグです。
+# RewriteRule .* - [F]
+
+# RewriteCond %{QUERY_STRING} p=([^&]+)
+# RewriteRule rewrite-test/sub1 sub1/%1? [R]
+
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule rewrite-test/sub2/(.+) sub1/$1
 
