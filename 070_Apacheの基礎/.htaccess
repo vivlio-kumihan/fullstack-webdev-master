@@ -31,6 +31,13 @@ RewriteBase /apache/rewrite-test/
 # RewriteCond %{QUERY_STRING} p=([^&]+)
 # RewriteRule rewrite-test/sub1 sub1/%1? [R]
 
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule rewrite-test/sub2/(.+) sub1/$1
+# RewriteCond %{REQUEST_FILENAME} -f
+# RewriteRule rewrite-test/sub1/(.+) sub2/$1
+
+
+# # RewriteRule rewrite-test/file1.html file1.php
+# # `/?` => 正規表現で`/`があってもなくても。
+# # `$` => 正規表現で終端一致。
+# RewriteRule /?rewrite-test/(.+)\.html$ $1.php
+
 

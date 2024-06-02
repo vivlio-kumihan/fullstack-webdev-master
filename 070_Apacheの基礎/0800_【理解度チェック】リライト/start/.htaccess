@@ -8,7 +8,6 @@
 RewriteEngine On
 
 
-
 # 問２：
 # rewrite-test/sub1内のファイルに対してリクエストを送
 # 信した際に同じファイル名でsub2内に存在するファイルは

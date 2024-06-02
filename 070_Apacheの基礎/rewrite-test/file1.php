@@ -7,6 +7,6 @@
     <title>Document</title>
 </head>
 <body>
-    <h1><?php echo 'これはPHPファイルです。'; ?></h1>
+    <h1><?php echo 'これはPHPファイルです。hogehoge'; ?></h1>
 </body>
 </html>
