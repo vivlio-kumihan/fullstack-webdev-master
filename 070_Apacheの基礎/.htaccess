@@ -9,8 +9,8 @@
 # この書式の状態で、sub1/file.html sub1/file2.htmlにアクセスすると全てsub2（sub2/index.html）へアクセスしてしまうから。
 # RewriteRule rewrite-test/sub1/ /apache/rewrite-test/sub2/
 
-RewriteEngine On
-RewriteBase /apache/rewrite-test/
+# RewriteEngine On
+# RewriteBase /apache/rewrite-test/
 # RewriteRule rewrite-test/index.html tmp.html
 # RewriteRule rewrite-test/imgs/150.jpg imgs/150.png
 
@@ -40,4 +40,116 @@ RewriteBase /apache/rewrite-test/
 # # `$` => 正規表現で終端一致。
 # RewriteRule /?rewrite-test/(.+)\.html$ $1.php
 
+# RewriteCond /Applications/MAMP/htdocs/fullstack-webdev-master/070_Apacheの基礎/rewrite-test/imgs/$1.webp -f
+# RewriteRule /?rewrite-test/imgs/(.+)\.(jpe?g|png) imgs/$1.webp
 
+
+
+
+# # www.dev.local:8888/apache/任意のパスで検索されたら。。。
+# # dev.local:8888/apache/任意のパスを返す。
+
+# # %{HTTP_HOST} => ドメインとポートを取る。
+# # それが、ドメインが、正規表現の`^www\.dev\.local`にマッチしたら。。。
+# # [NC] => 大文字小文字の区別をしないオプションをつけて。。。
+# RewriteCond %{HTTP_HOST} ^www\.dev\.local [NC]
+# # パスは必要なし、つまり有っても無くても => `.?`
+# # %{REQUEST_URI} => 検索窓で入れたURLに飛ぶ
+# RewriteRule .? http://dev.local:8888%{REQUEST_URI} [R=301]
+
+
+
+
+
+# RewriteCond %{HTTP_HOST} ^vhost\.dev\.local [NC]
+# RewriteCond %{REQUEST_URI} !^/apache/rewrite-test/vhost/
+# RewriteRule (.*) vhost/$1
+
+# 前提の確認
+# RewriteRule A B
+# A => コンテキスト・パスが入っている。エイリアス `apache` までは省略できる。
+# B => コンテキスト・パスが入っている。`rewrite-test` までは省略できる。
+
+# 理解できたことは、RewriteRuleの処理の中で『パスは相殺される』こと。
+
+# このルールに対して、
+# RewriteRule (.*) vhost/$1
+
+# 検索窓に `http://vhost.dev.local:8888/apache/` を入力する。
+# (.*)には、『↑このコンテキスト・パス』が入る。
+# ここで重要なのは、
+# 共通部分の `http://vhost.dev.local:8888/apache/` を相殺するから、
+# 文字が『有』っても『無』くても連続した文字列ということになる。
+
+# リダイレクトする文字列は、
+# vhost/$1
+# `http://vhost.dev.local:8888/apache/rewrite-test/vhost/文字が『有』っても『無』くても連続した文字列`
+# ここへリダイレクトする。
+
+# で、`vhostディレクト` に `file1.html` というファイルがあるとして、
+# 検索窓に `http://vhost.dev.local:8888/apache/file1.html` を入力する。
+
+# リダイレクトする文字列は、
+# vhost/$1
+# `http://vhost.dev.local:8888/apache/rewrite-test/vhost/file1.html` となる。
+# vhostにあるファイルへのパスが通る。
+
+# コンテキスト・パスに対して起点となるエイリアスを作っておくことは重要。
+
+
+RewriteEngine On
+RewriteBase /apache/rewrite-test/
+
+
+# [FileETag]を使ったキャッシュの設定
+# コンテキスト:	サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
+
+# INode、更新日時、ファイルサイズを使用
+FileETag All
+FileETag INode MTime Size
+
+# ETagなし
+FileETag None
+
+# 更新日時、ファイルサイズのみ使用
+FileETag MTime Size
+
+
+# Expiresを使ったキャッシュの設定
+
+# [ExpiresActive]
+# サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
+
+# [ExpiresDefault]
+# サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
+
+# Last-Modifiedのキャッシュの有効化する設定は
+# .htaccess
+# ExpiresActive On
+
+# 期間を設定
+# ExpiresDefault
+
+# FilesMatch
+# FilesMatchディレクティブの中で、
+# 設定した正規表現にマッチするファイルに対してという意味
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  <FilesMatch "\.(png|jpe?g|gif|css|js|html)$">
+    # アクセスされてから2週間の期間に設定する。
+    ExpiresDefault "access plus 2 week"
+    # # ファイルが変更されてから2週間の期間に設定する。
+    # # 一般的には使わない。
+    # ExpiresDefault "modification plus 2 week"
+  </FilesMatch>
+</IfModule>
+
+# キャッシュ期間の指定方法
+# 年:year(s)	
+# 月:month(s)
+# 週:week(s)	
+# 日:day(s)
+# 時:hour(s)
+# 分:minute(s)
+# 秒:second(s)
