@@ -1,4 +1,3 @@
-
 # Apacheの基礎
 
 ## プレゼンテーション層担当
@@ -921,15 +920,134 @@ DeflateCompressionLevel 5
 ブラウザのキャッシュを使わずにサーバーから直接ファイルを読む。
 ステータス：200
 
+ブラウザのキャッシュを使ってファイル表現する。
+ステータス：304
+
 サーバーからの応答であるレスポンス・ヘッダーに
 E-tag："128-5e59f61af6a40"
 INode、更新日時、ファイルサイズの情報によって出猟される固有の番号がブラウザに返る。
 
 これをブラウザからサーバーへ同じリクエストで送信する場合に、リクエスト・ヘッダー内のパラメーターとしてE-tagを付与する。
 
-コマンドRすると、ステータスは304でブラウザのキャッシュを使っている状態になり、
+ファイルに何も変更を加えない状態で、もう一度サーバーへ投げると（コマンド＋R）、サーバーは、自身持つE-tagの値と送られてきたIf-None-Matchの値を比べ同じであれば、ブラウザのキャッシュを使うよう状態ステータスの304を返す。
 If-None-Matchのパラメーターに先ほどのE-tagで設定された値が入る。
 
-サーバーは自身のE-tagの値と送られてきたIf-None-Matchの値を比べ同じであれば、ページ内容に変更がないようだからブラウザ側のキャッシュを使って表示してねと304を返す。
-
 ## Last-Modified キャッシュの有効化
+
+最終更新日で検知するキャッシュの有効化をやる。
+
+### Expiresを使ったキャッシュの設定
+
+#### [`<IfModule mod_expires.c>`]
+
+`mod_expires.c` モジュールがある場合に使えることを宣言する。
+
+#### [ExpiresActive]
+
+`Last-Modified` のキャッシュを使うには、まずこの属性を有効にする。
+
+* コンテキスト：サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
+
+
+#### [ExpiresDefault]
+
+有効期間を設定する属性
+
+* コンテキスト：サーバ設定ファイル, バーチャルホスト, ディレクトリ, .htaccess
+
+#### [`<FilesMatch　"regRep">`ディレクティブ]
+
+拡張子を指定したものがあればはいかの属性を有効にする。
+
+__例__
+
+```apache
+<IfModule mod_expires.c>
+  ExpiresActive On
+  <FilesMatch "\.(png|jpe?g|gif|css|js|html)$">
+    ExpiresDefault "access plus 6 month"
+    # ファイルにアクセスがあってから6ヶ月有効
+    # 通常はこれくらいの期間を推奨されている。
+    ExpiresDefault "modification plus 2 week"
+    # ファイルが編集されてから2週間有効
+  </FilesMatch>
+</IfModule>
+```
+
+#### キャッシュ期間の指定方法
+
+|期間|指定方法|
+|---|---|
+|年|year(s)|
+|月|month(s)|
+|週|week(s)|
+|日|day(s)|
+|時|hour(s)|
+|分|minute(s)|
+|秒|second(s)|
+
+### 修正が反映されない問題の解決
+
+```apache
+  <FilesMatch "\.(png|jpe?g|gif|css|js|html)$">
+    ExpiresDefault "access plus 6 month"
+  </FilesMatch>
+```
+
+6ヶ月間キャッシュが有効になる === 変更しても反映されない。
+この問題を解決するためには以下のようにファイルへのリンクに対して
+バージョン指定をして、変更の度に番号をあげていく方法が有効。
+どこのWEB屋さんでもやっていること。教わってよかったね。
+
+```html
+<head>
+  <meta charset="UTF-8">
+  ...
+  ...
+  <title>Document</title>
+  <link rel="stylesheet" href="style.css?v1">
+  <script src="main.js?v1" defer></script>
+</head>
+```
+
+## HTTP/1とKeepAlive
+
+
+### TCPでの通信
+
+TCPでの通信は、
+
+* ブラウザ
+  * 接続要請する。
+* WEBサーバー
+  * 用意完了、そちらはリクエストできるのか？
+* ブラウザ
+  * それでは送信する。
+* __コネクション確立__
+  HTML, CSS, JS, JPEG ,PNG...これらのどれかをやりとりする。
+* WEBサーバー
+  * 読み込んだので接続を切断する。
+* ブラウザ
+  * 了解、こちらも接続する。
+* ブラウザ
+  * 了解、確認した。
+* __コネクション切断__
+
+このやりとりを `1ページ` を送るたびに、ページ内の `要素全て` について `コネクションの確立・切断` を行う。
+
+これでは通信に時間がかかるので、その対応策として `KeepAlive` を使う。
+
+`KeepAlive` 設定を有効にすると、一つのTCPコネクション内で複数のhttpリクエストを送信することができる。
+
+```apache
+# Apacheはデフォルトで`KeepAlive`を`On`にしているので、改めてhttpd.confに設定する必要はない。
+KeepAlive On
+
+# 1ページを読み込む時に行われる
+# imageファイル、静的ファイル（CSS, JS）の総計に
+# 少し余裕を持たせる数で設定。なので100としている。
+# KeepAlive Off
+MaxKeepAliveRequests 100
+# 時間は1秒を推奨。
+KeepAliveTimeout 1
+````

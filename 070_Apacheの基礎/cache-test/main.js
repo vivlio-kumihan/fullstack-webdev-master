@@ -1,1 +1,1 @@
-document.write('読み込んでいるmain.jsはv2です。');
+document.write('読み込んでいるmain.jsはv1000です。');
