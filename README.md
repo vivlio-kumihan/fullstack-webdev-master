@@ -2082,7 +2082,7 @@ __データ型__
 |TIMESTAMP|日時|
 |CHAR|固定長文字列|
 |VARCHAR|可変長文字列|
-|BLOB|バイナリデータ（画像や音声、動画など）|
+|BLOB|バイナリデータ（画像や音声、動画など）（ビイー・ロブ）|
 
 |制約|内容|
 |:---|:---|
@@ -2109,6 +2109,30 @@ drop database test_db;
 
 __テーブルの作成__
 
+## DDLをやってみる
+どのデータベースにテーブルを作成するのかを明示する。
+この場合は、`test_db`データベースに`test_table`を作成するので、以下のような書き方になる。
+
+```sql
+create table test_db.test_table (
+);
+```
+* まず最初に属性を設定する。`id`を指定。
+* クラスを指定する。この場合は `int(6) unsigned` として、6桁の整数値を設定。
+* defaultとして、`id`に値が設定されなかった場合には`0`を設定する。
+* コメントを設定する。和訳を入れるそうだ。
+
+```sql
+create table test_db.test_table (
+	id int(6) unsigned default 0 comment 'ID'
+);
+```
+
+* 属性をval（文字列の値を格納）として、
+* クラスは可変長文字で20桁まで、
+* defaultで『hello』を設定。
+* コメントは、和訳で『値』とする。
+
 ```sql
 create table test_db.test_table (
 	id int(6) unsigned default 0 comment 'ID',
@@ -2122,17 +2146,32 @@ __テーブルの削除__
 drop table test_db.test_table;
 ```
 
-__describe（記述する）__
+## describe（記述する => 結果を確認する方法）
 
-DBeaver（コンソール）でデータベースを表組みになっている状態で確認する。
+__テーブル内容を確認するスプレッドシートを出力させる__
 
 ```sql
--- テーブルをデフォルトで出力。
-desc test_db.test_table ;
--- commentありで出力
-show full columns from test_db.test_table ;
--- 現時点でのクエリの内容を出力する。
-show create table test_db.test_table ;
+desc test_db.test_table;
+```
+
+__全てのテーブル内容を確認するスプレッドシートを出力させる__
+
+```sql
+show full columns from test_db.test_table;
+```
+
+__テーブル内容を確認する別のやり方__
+
+現時点でのクエリの内容を出力する。
+
+```sql
+show create table test_db.test_table;
+```
+```sql
+CREATE TABLE `test_table` (
+  `id` int(6) unsigned DEFAULT '0' COMMENT 'ID',
+  `val` varchar(20) DEFAULT 'hello' COMMENT 'value'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 ```
 
 #### アクティブなDBの切り替え
